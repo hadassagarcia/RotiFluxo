@@ -1,0 +1,1 @@
+python C:\Caminho\Para\Sua\Pasta\atualizar_dados.py

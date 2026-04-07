@@ -1,0 +1,8 @@
+<<<<<<< HEAD
+streamlit
+pandas
+=======
+streamlit
+pandas
+>>>>>>> 4cb9e7c271a5319dbc9b72c7a3a0d4625c8ea0a3
+oracledb

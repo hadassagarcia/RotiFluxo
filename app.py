@@ -94,17 +94,29 @@ if not df_base.empty:
             st.dataframe(tab_loja.map(fmt), use_container_width=True)
 
             # GRÁFICO DE LINHAS (TENDÊNCIA DA LOJA)
+            # --- GRÁFICO DE LINHAS (TENDÊNCIA DA LOJA COM ORDEM CRONOLÓGICA) ---
             st.subheader("📈 Tendência Diária de Vendas (Loja)")
+            
+            # 1. Criamos a pivot table usando a DATA REAL (datetime) como índice
+            # Isso garante que a ordem no gráfico seja 01, 02, 03...
             graf_dados = pd.pivot_table(
-                df[df['V_Liq_Loja'] != 0].sort_values('Data'), 
+                df[df['V_Liq_Loja'] != 0], 
                 values='V_Liq_Loja', 
-                index='Dia', 
+                index='Data',  # USANDO A DATA AQUI (Índice cronológico)
                 columns='Produto', 
                 aggfunc='sum', 
-                fill_value=0, 
-                sort=False
+                fill_value=0
             )
+
+            # 2. Agora, trocamos o índice de 'Data' para 'Dia' (o texto bonito) 
+            # apenas para exibição no gráfico, sem perder a ordem que o Pandas já criou
+            mapa_dias = df.set_index('Data')['Dia'].to_dict()
+            graf_dados.index = graf_dados.index.map(mapa_dias)
+
+            # 3. Plota o gráfico com a ordem corrigida
             st.line_chart(graf_dados)
+            
+            
         else:
             st.warning("Sem vendas registradas na loja para este período.")
 

@@ -60,7 +60,7 @@ if not df_base.empty:
         tab = tab.reindex(columns=ordem)
         tab['Total'] = tab.sum(axis=1)
         tab = tab.sort_values('Total', ascending=False)
-        st.dataframe(tab.applymap(fmt), use_container_width=True)
+        st.dataframe(tab.map(fmt), use_container_width=True)
         st.line_chart(pd.pivot_table(df.sort_values('Data'), values='V_Liq_Final', index='Dia', columns='Produto', aggfunc='sum', fill_value=0, sort=False))
 else:
     st.info("Aguardando sincronização de dados...")

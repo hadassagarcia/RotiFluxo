@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import streamlit as st
 import pandas as pd
 from datetime import timedelta
@@ -164,4 +164,4 @@ if not df_base.empty:
         
         st.dataframe(tab_v, use_container_width=True)
         st.line_chart(pd.pivot_table(df.sort_values('Data'), values='Valor_Liquido', index='Dia_Exibicao', columns='Produto', aggfunc='sum', fill_value=0, sort=False))
->>>>>>> 4cb9e7c271a5319dbc9b72c7a3a0d4625c8ea0a3
+

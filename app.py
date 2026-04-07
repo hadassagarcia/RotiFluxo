@@ -3,9 +3,9 @@ import pandas as pd
 from datetime import timedelta
 
 # 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="RotiFluxo - Filial 2", layout="wide", page_icon="🍗")
+st.set_page_config(page_title="RotiFluxo", layout="wide")
 
-st.title("🍗 Análise de Vendas - Rotisseria (Filial 2)")
+st.title("Análise de Vendas - Rotisseria")
 
 # 2. FUNÇÃO DE CARGA DE DADOS (LÊ O CSV GERADO PELO SEU PC)
 @st.cache_data(ttl=600)

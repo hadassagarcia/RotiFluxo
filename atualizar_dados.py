@@ -2,21 +2,22 @@ import oracledb
 import pandas as pd
 from github import Github
 import platform
+import time
+import os
 
-# --- 1. CONFIGURAÇÕES (SÓ NO SEU PC) ---
+# --- 1. CONFIGURAÇÕES DO BANCO ---
 DB_CONFIG = {
     "user": "NUTRICAO",
-    "pass": "nutr1125mmf", # Senha que vimos no seu print
-    "dsn": "192.168.222.20:1521/WINT" # IP que funcionou no seu print
+    "pass": "nutr1125mmf",
+    "dsn": "192.168.222.20:1521/WINT"
 }
 
-import os
-# Ele vai procurar uma variável no seu Windows chamada GITHUB_TOKEN
+# --- 2. CONFIGURAÇÕES DO GITHUB ---
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN_ROTI") 
 REPO_NAME = "hadassagarcia/RotiFluxo"
 FILE_PATH = "vendas_filial2.csv"
 
-# --- 2. ATIVANDO MODO DE COMPATIBILIDADE ---
+# --- 3. ATIVANDO ORACLE CLIENT (WINDOWS) ---
 try:
     if platform.system() == "Windows":
         oracledb.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_23_9")
@@ -26,10 +27,10 @@ except Exception as e:
 
 def sincronizar():
     try:
-        print("🔗 Conectando ao WinThor local...")
+        print(f"\n🚀 [{time.strftime('%H:%M:%S')}] Conectando ao WinThor...")
         conn = oracledb.connect(user=DB_CONFIG["user"], password=DB_CONFIG["pass"], dsn=DB_CONFIG["dsn"])
         
-        # SQL Atualizado com CODCLI para identificar a Filial 5
+        # SQL que traz os dados dos últimos 60 dias (ajustado para suas colunas)
         query = """
             SELECT 
                 P.DESCRICAO AS "Produto", 
@@ -52,14 +53,15 @@ def sincronizar():
         conn.close()
         
         if df.empty:
-            print("⚠️ Sem dados no período.")
+            print("⚠️ Sem dados novos no período.")
             return
 
         # Salva o CSV local
         df.to_csv(FILE_PATH, index=False)
-        print(f"✅ Extração: {len(df)} linhas.")
+        print(f"✅ Extração: {len(df)} linhas extraídas.")
 
-        # --- 3. ENVIANDO PARA O GITHUB ---
+        # --- ENVIO PARA O GITHUB ---
+        print("📤 Enviando para o GitHub...")
         g = Github(GITHUB_TOKEN)
         repo = g.get_repo(REPO_NAME)
         
@@ -68,14 +70,21 @@ def sincronizar():
             
         try:
             contents = repo.get_contents(FILE_PATH)
-            repo.update_file(contents.path, "Sync Filial 5 Update", content, contents.sha)
-            print("🚀 Dashboard atualizado no GitHub!")
-        except:
-            repo.create_file(FILE_PATH, "Carga inicial", content)
-            print("🆕 Arquivo criado!")
+            repo.update_file(contents.path, "Auto-sync 30min", content, contents.sha)
+            print("🚀 Dashboard atualizado na nuvem!")
+        except Exception as e:
+            print(f"⚠️ Erro ao atualizar no GitHub: {e}")
 
     except Exception as e:
-        print(f"❌ Erro: {e}")
+        print(f"❌ Erro na sincronização: {e}")
 
+# --- LOOP DE 30 MINUTOS ---
 if __name__ == "__main__":
-    sincronizar()
+    print("🤖 MONITOR ROTIFLUXO ATIVADO")
+    print("Mantenha esta janela aberta para atualizar a cada 30 minutos.")
+    
+    while True:
+        sincronizar()
+        proxima_carga = time.strftime('%H:%M:%S', time.localtime(time.time() + 1800))
+        print(f"💤 Aguardando... Próxima carga às: {proxima_carga}")
+        time.sleep(1800) # 1800 segundos = 30 minutos

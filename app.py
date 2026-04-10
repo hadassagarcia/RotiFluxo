@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import timedelta
 import time
 
-# 1. CONFIGURAÇÃO
+# 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="RotiVision", layout="wide", page_icon="🍗")
 
 # --- BARRA LATERAL ---
@@ -48,13 +48,15 @@ if not df_base.empty:
 
         # --- CARDS ESPECÍFICOS PARA FILIAL 2 ---
         if "Filial 2" in unidade:
+            # Venda Local: Saídas (S) que NÃO são para o cliente 6613
             v_bruta_local = df_filt[(df_filt['CODOPER'] == 'S') & (df_filt['CODCLI'] != 6613)]['Valor_Final'].sum()
+            # Venda Planalto: Saídas (S) apenas para o cliente 6613
             v_planalto = df_filt[(df_filt['CODOPER'] == 'S') & (df_filt['CODCLI'] == 6613)]['Valor_Final'].sum()
             total_periodo = v_bruta_local + v_planalto
             
-            # Acumulado sempre do dia 01 até Hoje
+            # Acumulado sempre do dia 01 até Hoje (Geral da Loja)
             df_mes_total = df_base[df_base['Data_Date'] >= primeiro_dia_mes]
-            v_acumulado = df_mes_total[df_mes_total['CODOPER'] == 'S']['Valor_Final'].sum() - \
+            v_acumulado = df_mes_total[df_mes_total['CODOPER'] == 'S'].groupby('CODCLI')['Valor_Final'].sum().sum() - \
                           df_mes_total[df_mes_total['CODOPER'].isin(['E', 'ED'])]['Valor_Final'].sum()
 
             c1, c2, c3, c4 = st.columns(4)
@@ -87,20 +89,30 @@ if not df_base.empty:
             dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
             df_filt['Dia'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} ({dias_pt[d.weekday()]})")
             
+            # LINHA 95 CORRIGIDA AQUI:
             tab = pd.pivot_table(df_filt, values='Val', index='Produto', columns='Dia', aggfunc='sum', fill_value=0)
+            
             if not tab.empty:
                 ordem = df_filt.sort_values('Data_Ref')['Dia'].unique()
                 tab = tab.reindex(columns=ordem)
                 tab['TOTAL'] = tab.sum(axis=1)
-                tab = = tab.sort_values('TOTAL', ascending=False)
+                tab = tab.sort_values('TOTAL', ascending=False)
                 tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
                 st.dataframe(tab.map(fmt), use_container_width=True)
 
         with aba2:
+            st.subheader("Análise de Curva ABC (Período)")
             abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
             if not abc.empty:
-                abc['% Acum'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()).cumsum() * 100
+                abc['% Total'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()) * 100
+                abc['% Acum'] = abc['% Total'].cumsum()
                 abc['Curva'] = abc['% Acum'].apply(lambda x: 'A' if x <= 80 else ('B' if x <= 95 else 'C'))
-                st.table(abc)
+                
+                # Formatação para tabela
+                abc_exibir = abc.copy()
+                abc_exibir['Valor_Final'] = abc_exibir['Valor_Final'].apply(fmt)
+                abc_exibir['% Total'] = abc_exibir['% Total'].map('{:.2f}%'.format)
+                abc_exibir['% Acum'] = abc_exibir['% Acum'].map('{:.2f}%'.format)
+                st.table(abc_exibir[['Curva', 'Produto', 'Valor_Final', '% Total', '% Acum']])
 else:
-    st.info("🚀 Sincronizando dados... Certifique-se de que o robô no seu PC está rodando.")
+    st.info("🚀 Sincronizando dados... Certifique-se de que o robô no seu PC está rodando e enviando os arquivos vendas_filial2.csv e vendas_filial5.csv.")

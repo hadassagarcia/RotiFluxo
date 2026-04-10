@@ -92,4 +92,15 @@ if not df_base.empty:
                 ordem = df_filt.sort_values('Data_Ref')['Dia'].unique()
                 tab = tab.reindex(columns=ordem)
                 tab['TOTAL'] = tab.sum(axis=1)
-                tab =
+                tab = = tab.sort_values('TOTAL', ascending=False)
+                tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
+                st.dataframe(tab.map(fmt), use_container_width=True)
+
+        with aba2:
+            abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
+            if not abc.empty:
+                abc['% Acum'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()).cumsum() * 100
+                abc['Curva'] = abc['% Acum'].apply(lambda x: 'A' if x <= 80 else ('B' if x <= 95 else 'C'))
+                st.table(abc)
+else:
+    st.info("🚀 Sincronizando dados... Certifique-se de que o robô no seu PC está rodando.")

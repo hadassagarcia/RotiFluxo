@@ -5,21 +5,22 @@ import platform
 import time
 import os
 
-# --- 1. CONFIGURAÇÕES DO BANCO ---
+# --- 1. CONFIGURAÇÕES DE ACESSO ---
 DB_CONFIG = {
     "user": "NUTRICAO",
     "pass": "nutr1125mmf",
     "dsn": "192.168.222.20:1521/WINT"
 }
 
-# --- 2. CONFIGURAÇÕES DO GITHUB ---
+# O Token deve estar configurado nas variáveis de ambiente do seu Windows
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN_ROTI") 
 REPO_NAME = "hadassagarcia/RotiFluxo"
-FILE_PATH = "vendas_filial2.csv"
+FILE_PATH = "vendas_geral.csv" # Alterado para 'geral' pois agora teremos dados amplos
 
-# --- 3. ATIVANDO ORACLE CLIENT (WINDOWS) ---
+# --- 2. ATIVANDO ORACLE CLIENT (WINDOWS) ---
 try:
     if platform.system() == "Windows":
+        # Caminho da sua pasta Instant Client
         oracledb.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_23_9")
         print("✅ Oracle Client Ativado!")
 except Exception as e:
@@ -30,38 +31,41 @@ def sincronizar():
         print(f"\n🚀 [{time.strftime('%H:%M:%S')}] Conectando ao WinThor...")
         conn = oracledb.connect(user=DB_CONFIG["user"], password=DB_CONFIG["pass"], dsn=DB_CONFIG["dsn"])
         
-        # SQL que traz os dados dos últimos 60 dias (ajustado para suas colunas)
+        # SQL OTIMIZADO:
+        # Puxamos os dados desde o dia 01 do mês anterior para garantir que o 
+        # cálculo de "Total Acumulado Mês" no site sempre tenha dados suficientes.
         query = """
             SELECT 
                 P.DESCRICAO AS "Produto", 
                 TRUNC(M.DTMOV) AS "Data",
                 M.CODOPER,
                 M.CODCLI,
+                M.CODFILIAL,
                 SUM(M.QT) AS "Qtd_KG", 
                 SUM(ROUND(M.QT * M.PUNIT, 2)) AS "Valor_Final" 
             FROM MMFRIOS.PCMOV M
             JOIN MMFRIOS.PCPRODUT P ON M.CODPROD = P.CODPROD
             WHERE P.CODEPTO = 105 
-              AND M.CODFILIAL = 2 
+              AND M.CODFILIAL IN (2, 5) 
               AND M.DTCANCEL IS NULL
               AND M.CODOPER IN ('S', 'ST', 'SM', 'E', 'ED') 
-              AND M.DTMOV >= SYSDATE - 60
-            GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), M.CODOPER, M.CODCLI
+              AND M.DTMOV >= TRUNC(SYSDATE, 'MM') - 5 -- Pega desde o dia 1 do mês atual com margem
+            GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), M.CODOPER, M.CODCLI, M.CODFILIAL
         """
         
         df = pd.read_sql(query, con=conn)
         conn.close()
         
         if df.empty:
-            print("⚠️ Sem dados novos no período.")
+            print("⚠️ Sem dados novos encontrados no WinThor.")
             return
 
-        # Salva o CSV local
+        # Salva o arquivo CSV localmente
         df.to_csv(FILE_PATH, index=False)
-        print(f"✅ Extração: {len(df)} linhas extraídas.")
+        print(f"✅ Extração concluída: {len(df)} linhas processadas.")
 
         # --- ENVIO PARA O GITHUB ---
-        print("📤 Enviando para o GitHub...")
+        print("📤 Sincronizando com GitHub...")
         g = Github(GITHUB_TOKEN)
         repo = g.get_repo(REPO_NAME)
         
@@ -69,22 +73,27 @@ def sincronizar():
             content = f.read()
             
         try:
+            # Tenta atualizar o arquivo se ele já existir
             contents = repo.get_contents(FILE_PATH)
-            repo.update_file(contents.path, "Auto-sync 30min", content, contents.sha)
-            print("🚀 Dashboard atualizado na nuvem!")
+            repo.update_file(contents.path, "Update Automático RotiVision", content, contents.sha)
+            print("✨ Dashboard atualizado na nuvem com sucesso!")
         except Exception as e:
-            print(f"⚠️ Erro ao atualizar no GitHub: {e}")
+            # Se o arquivo não existir, ele cria um novo
+            repo.create_file(FILE_PATH, "Carga Inicial RotiVision", content)
+            print("🆕 Novo arquivo de dados criado no GitHub!")
 
     except Exception as e:
-        print(f"❌ Erro na sincronização: {e}")
+        print(f"❌ ERRO NA SINCRONIZAÇÃO: {e}")
 
-# --- LOOP DE 30 MINUTOS ---
+# --- LOOP DE AUTOMAÇÃO (30 MINUTOS) ---
 if __name__ == "__main__":
-    print("🤖 MONITOR ROTIFLUXO ATIVADO")
-    print("Mantenha esta janela aberta para atualizar a cada 30 minutos.")
+    print("="*40)
+    print("🤖 MONITOR DE VENDAS ROTIVISION")
+    print("STATUS: ATIVO E AGUARDANDO...")
+    print("="*40)
     
     while True:
         sincronizar()
-        proxima_carga = time.strftime('%H:%M:%S', time.localtime(time.time() + 1800))
-        print(f"💤 Aguardando... Próxima carga às: {proxima_carga}")
-        time.sleep(1800) # 1800 segundos = 30 minutos
+        proxima = time.strftime('%H:%M:%S', time.localtime(time.time() + 1800))
+        print(f"💤 Ciclo finalizado. Próxima carga programada para: {proxima}")
+        time.sleep(1800) # Pausa de 30 minutos

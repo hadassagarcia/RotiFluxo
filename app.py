@@ -24,7 +24,7 @@ TABELA_PRECOS_CUSTOS = {
     "CARNE C/ MACAXEIRA KG": {"custo": 16.50},
     "BAIAO DE DOIS CF KG": {"custo": 18.00},
     "FRANGO ASSADO KG": {"custo": 24.00},
-    "FRANGO ASSADO METADE KG": {"custo": 24.00},
+    "FRANGO ASSADO CF METADE KG": {"custo": 24.00},
 }
 
 # --- ESTILIZAÇÃO PARA ACESSIBILIDADE ---

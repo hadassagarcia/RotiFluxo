@@ -9,58 +9,38 @@ st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon
 # CONSTANTES DE GESTÃO
 META_FATURAMENTO = 50000.00
 IMPOSTO_CMV_FIXO = 0.2925 
+
+# --- CADASTRO MANUAL DE PREÇOS E CUSTOS ---
+# Adicione os custos aqui. O que não estiver aqui, o sistema assume custo 0 para você completar depois.
 TABELA_PRECOS_CUSTOS = {
-    "EMPADAO FRANGO KG": {"venda": 45.90, "custo": 18.50},
-    "CUSCUZ C/ CARNE MOIDA KG": {"venda": 32.00, "custo": 12.00},
-    "LASANHA FRANGO KG": {"venda": 48.00, "custo": 19.80},
-    "PATE FRANGO KG": {"venda": 38.00, "custo": 14.50},
-    "SOPA CARNE KG": {"venda": 25.00, "custo": 9.50},
-    "LASANHA CARNE MOIDA KG": {"venda": 52.00, "custo": 22.00},
-    "CUSCUZ C/ SALSICHA KG": {"venda": 22.00, "custo": 7.50},
-    "MACAXEIRA C/ CALABRESA ACEB KG": {"venda": 28.00, "custo": 11.00},
-    "CARNE C/ MACAXEIRA KG": {"venda": 42.00, "custo": 16.50},
-    "BAIAO DE DOIS CF KG": {"venda": 35.00, "custo": 13.00},
+    "EMPADAO FRANGO KG": {"custo": 18.50},
+    "CUSCUZ C/ CARNE MOIDA KG": {"custo": 12.00},
+    "LASANHA FRANGO KG": {"custo": 19.80},
+    "PATE FRANGO KG": {"custo": 14.50},
+    "SOPA CARNE KG": {"custo": 9.50},
+    "LASANHA CARNE MOIDA KG": {"custo": 22.00},
+    "CUSCUZ C/ SALSICHA KG": {"custo": 7.50},
+    "MACAXEIRA C/ CALABRESA ACEB KG": {"custo": 11.00},
+    "CARNE C/ MACAXEIRA KG": {"custo": 16.50},
+    "BAIAO DE DOIS CF KG": {"custo": 13.00},
+    "FRANGO ASSADO KG": {"custo": 14.00},
+    "FRANGO ASSADO": {"custo": 14.00},
 }
 
-# --- ESTILIZAÇÃO PARA ACESSIBILIDADE E PERFORMANCE ---
+# --- ESTILIZAÇÃO PARA ACESSIBILIDADE ---
 st.markdown("""
     <style>
-    /* 1. Aumenta o texto das métricas (Faturamento/Meta) */
-    [data-testid="stMetricValue"] {
-        font-size: 32px !important;
-        font-weight: bold;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 18px !important;
-    }
-    
-    /* 2. Aumenta o texto das ABAS (Visão Diária, ABC, etc) */
-    button[data-baseweb="tab"] p {
-        font-size: 20px !important;
-        font-weight: 600 !important;
-    }
-    
-    /* 3. Aumenta os rótulos de seleção (Unidade, Datas) */
-    label[data-testid="stWidgetLabel"] p {
-        font-size: 18px !important;
-        font-weight: bold !important;
-    }
-
-    /* 4. Aumenta o texto dentro das tabelas */
-    .stDataFrame td, .stDataFrame th {
-        font-size: 16px !important;
-    }
-
-    /* 5. Aumenta textos informativos e de ajuda */
-    .stMarkdown p {
-        font-size: 18px !important;
-    }
-
+    [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: bold; }
+    [data-testid="stMetricLabel"] { font-size: 18px !important; }
+    button[data-baseweb="tab"] p { font-size: 20px !important; font-weight: 600 !important; }
+    label[data-testid="stWidgetLabel"] p { font-size: 18px !important; font-weight: bold !important; }
+    .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
+    .stMarkdown p { font-size: 18px !important; }
     .main { background-color: #f8f9fa; }
     </style>
     """, unsafe_allow_html=True)
 
-# CARGA DE DADOS
+# --- CARGA DE DADOS ---
 @st.cache_data(ttl=60)
 def carregar(arq):
     try:
@@ -71,22 +51,20 @@ def carregar(arq):
         return df
     except: return pd.DataFrame()
 
-unidade = st.sidebar.selectbox("🏢 Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
+unidade = st.sidebar.selectbox("Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
 df_base = carregar("vendas_filial2.csv" if "Filial 2" in unidade else "vendas_filial5.csv")
 df_avarias = carregar("avarias.csv")
 
 if not df_base.empty:
-    st.title(f"RotiFácil - {unidade}")
+    st.title(f"🍗 RotiFácil - {unidade}")
     
-    # --- STATUS DA META (Sempre Fixo no Topo - Acumulado do Mês) ---
+    # --- STATUS DA META ---
     fat_mes_atual = df_base[df_base['CODOPER'] == 'S']['Valor_Final'].sum()
     progresso = min(fat_mes_atual / META_FATURAMENTO, 1.0)
-    
-    st.subheader(f"🎯 Status de Performance (Meta Mensal: R$ {META_FATURAMENTO:,.2f})")
+    st.subheader(f"🎯 Status de Performance (Meta: R$ {META_FATURAMENTO:,.2f})")
     st.progress(progresso)
     st.write(f"Acumulado no Mês: **R$ {fat_mes_atual:,.2f}** ({progresso*100:.1f}%)")
 
-    # --- SELETOR DE DATAS (Controla as abas abaixo) ---
     st.divider()
     hoje = df_base['Data_Date'].max()
     primeiro_dia = hoje.replace(day=1)
@@ -104,46 +82,56 @@ if not df_base.empty:
 
         # --- ABA PERFORMANCE ---
         with aba_perf:
-            st.subheader("🚀 Indicadores do Período Selecionado")
+            st.subheader("🚀 Projeções da Performance Semanal")
             c1, c2 = st.columns(2)
             with c1:
-                v_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
-                st.metric("Venda no Período", fmt(v_periodo))
+                sem_atual = df_base[df_base['Data_Date'] >= (hoje - timedelta(days=7))]['Valor_Final'].sum()
+                sem_ant = df_base[(df_base['Data_Date'] >= (hoje - timedelta(days=14))) & (df_base['Data_Date'] < (hoje - timedelta(days=7)))]['Valor_Final'].sum()
+                if sem_ant > 0:
+                    delta = ((sem_atual - sem_ant) / sem_ant) * 100
+                    st.metric("Venda Últimos 7 Dias", fmt(sem_atual), delta=f"{delta:.2f}%")
+                else:
+                    st.metric("Venda Últimos 7 Dias", fmt(sem_atual))
+            
             with c2:
-                st.write("**🏆 Top 3 do Período**")
+                st.write("**🏆 Top 3 Mais Vendidos (Faturamento)**")
                 top3 = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().nlargest(3)
                 for i, (p, v) in enumerate(top3.items(), 1): st.write(f"{i}º - {p} ({fmt(v)})")
 
             st.divider()
-            st.subheader("💰 Lucratividade do Período")
+            st.subheader("💰 Análise de Lucratividade")
+            
+            # Agrupamento por produto (Pega TODOS)
             v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({'Valor_Final': 'sum', 'Qtd_KG': 'sum'}).reset_index()
-            v_prod['Custo_U'] = v_prod['Produto'].apply(lambda x: TABELA_PRECOS_CUSTOS.get(x, {}).get('custo', 0))
-            v_prod['Lucro_Liq'] = v_prod['Valor_Final'] - (v_prod['Valor_Final'] * IMPOSTO_CMV_FIXO) - (v_prod['Qtd_KG'] * v_prod['Custo_U'])
-            v_prod['Margem_%'] = (v_prod['Lucro_Liq'] / v_prod['Valor_Final']) * 100
-            st.dataframe(v_prod[v_prod['Custo_U'] > 0].sort_values('Lucro_Liq', ascending=False)[['Produto', 'Valor_Final', 'Lucro_Liq', 'Margem_%']].style.format({'Valor_Final': fmt, 'Lucro_Liq': fmt, 'Margem_%': '{:.2f}%'}))
+            
+            # Puxa custos (se não achar, coloca 0.0)
+            v_prod['Custo_U'] = v_prod['Produto'].apply(lambda x: TABELA_PRECOS_CUSTOS.get(x, {}).get('custo', 0.0))
+            
+            # Cálculos Financeiros
+            v_prod['Imposto_CMV'] = v_prod['Valor_Final'] * IMPOSTO_CMV_FIXO
+            v_prod['Custo_Total'] = v_prod['Qtd_KG'] * v_prod['Custo_U']
+            v_prod['Lucro_Liquido'] = v_prod['Valor_Final'] - v_prod['Imposto_CMV'] - v_prod['Custo_Total']
+            v_prod['Margem_%'] = (v_prod['Lucro_Liquido'] / v_prod['Valor_Final']) * 100
+            
+            # Mostra TODOS os produtos vendidos
+            st.dataframe(v_prod.sort_values('Lucro_Liquido', ascending=False)[['Produto', 'Valor_Final', 'Lucro_Liquido', 'Margem_%']].style.format({
+                'Valor_Final': fmt, 'Lucro_Liquido': fmt, 'Margem_%': '{:.2f}%'
+            }), use_container_width=True)
 
-        # --- ABA VISÃO DIÁRIA (REFORMULADA) ---
+        # --- ABA VISÃO DIÁRIA ---
         with aba_vendas:
             st.subheader("📊 Faturamento por Dia e Produto")
             df_filt['Val'] = df_filt.apply(lambda r: r['Valor_Final'] if r['CODOPER'] == 'S' else -r['Valor_Final'], axis=1)
-            
-            # Formatação da data: "13/04 Seg"
             dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
             df_filt['Data_Rotulo'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} {dias_pt[d.weekday()]}")
-            
-            # Criar Tabela Pivot
             tab = pd.pivot_table(df_filt, values='Val', index='Produto', columns='Data_Rotulo', aggfunc='sum', fill_value=0)
             
             if not tab.empty:
-                # Ordenar colunas cronologicamente
                 ordem_cols = sorted(df_filt['Data_Rotulo'].unique(), key=lambda x: x[:5])
                 tab = tab.reindex(columns=ordem_cols)
-                
-                # Totais Horizontais e Verticais
                 tab['TOTAL PRODUTO'] = tab.sum(axis=1)
                 tab = tab.sort_values('TOTAL PRODUTO', ascending=False)
                 tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
-                
                 st.dataframe(tab.map(fmt), use_container_width=True)
 
         # --- ABA ABC ---
@@ -155,17 +143,17 @@ if not df_base.empty:
 
         # --- ABA RUPTURA ---
         with aba_ruptura:
-            st.info("Monitorando produtos Classe A que não registraram vendas na data final selecionada.")
+            st.subheader("🚨 Verificação de Ruptura")
             classe_a = abc[abc['Curva'] == 'A']['Produto'].tolist()
-            vendas_ultimo_dia = df_filt[df_filt['Data_Date'] == fim]['Produto'].unique()
-            rupturas = [p for p in classe_a if p not in vendas_ultimo_dia]
-            if rupturas: st.warning(f"Possível Ruptura detectada em: {', '.join(rupturas)}")
-            else: st.success("Nenhuma ruptura detectada no encerramento do período.")
+            vendas_fim = df_filt[df_filt['Data_Date'] == fim]['Produto'].unique()
+            faltantes = [p for p in classe_a if p not in vendas_fim]
+            if faltantes: st.warning(f"Produtos Classe A sem venda no último dia: {', '.join(faltantes)}")
+            else: st.success("Principais produtos com venda registrada no fechamento do período.")
 
         # --- ABA AVARIA ---
         with aba_avaria:
-            st.subheader("🗑️ Controle de Avaria")
+            st.subheader("🗑️ Histórico de Avaria")
             if not df_avarias.empty: st.dataframe(df_avarias)
-            else: st.info("Sem registros de avaria para o período.")
+            else: st.info("Sem dados de avaria no período selecionado.")
 
-else: st.info("Sincronizando dados...")
+else: st.info("Carregando dados de performance...")

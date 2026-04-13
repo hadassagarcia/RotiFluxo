@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import timedelta
 import time
 
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. CONFIGURAÇÃO
 st.set_page_config(page_title="RotiFácil", layout="wide", page_icon="🍗")
 
 # --- BARRA LATERAL ---
@@ -28,7 +28,7 @@ df_base = carregar_dados(unidade)
 if not df_base.empty:
     st.title(f"🍗 {unidade} - RotiFácil")
 
-    # --- DATAS E FILTROS ---
+    # --- DATAS ---
     hoje = df_base['Data_Date'].max()
     primeiro_dia_mes = hoje.replace(day=1)
     
@@ -42,28 +42,27 @@ if not df_base.empty:
         
         def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-        # Cálculo unificado de faturamento (S - E - ED)
+        # Cálculo unificado de faturamento líquido (Vendas S - Devoluções E/ED)
         vendas_s = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
         devolucoes = df_filt[df_filt['CODOPER'].isin(['E', 'ED'])]['Valor_Final'].sum()
-        total_liquido_periodo = vendas_s - devolucoes
+        total_periodo = vendas_s - devolucoes
 
-        # --- CARDS ESPECÍFICOS PARA FILIAL 2 ---
         if "Filial 2" in unidade:
+            # Parnamirim: Separação do cliente 6613 (Planalto)
             v_planalto = df_filt[(df_filt['CODOPER'] == 'S') & (df_filt['CODCLI'] == 6613)]['Valor_Final'].sum()
-            v_local_pura = total_liquido_periodo - v_planalto
+            v_local_pura = total_periodo - v_planalto
             
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("🛒 VENDA LOCAL", fmt(v_local_pura))
             c2.metric("🏪 VENDA P/ PLANALTO", fmt(v_planalto))
-            c3.metric("📊 TOTAL LÍQUIDO", fmt(total_liquido_periodo))
-            c4.metric("💰 ACUMULADO MÊS", fmt(total_liquido_periodo) if ini == primeiro_dia_mes else "---")
-        
-        # --- CARDS ESPECÍFICOS PARA FILIAL 5 ---
+            c3.metric("📊 TOTAL LÍQUIDO", fmt(total_periodo))
+            c4.metric("💰 ACUMULADO MÊS", fmt(total_periodo) if ini == primeiro_dia_mes else "---")
         else:
+            # Planalto: Valor Total Líquido
             c1, c2, c3 = st.columns(3)
-            c1.metric("🛒 VENDA NO PERÍODO", fmt(total_liquido_periodo))
-            c2.metric("💰 ACUMULADO MÊS", fmt(total_liquido_periodo) if ini == primeiro_dia_mes else "---")
-            c3.metric("📅 ÚLTIMA ATUALIZAÇÃO", hoje.strftime('%d/%m'))
+            c1.metric("🛒 VENDA NO PERÍODO", fmt(total_periodo))
+            c2.metric("💰 ACUMULADO MÊS", fmt(total_periodo) if ini == primeiro_dia_mes else "---")
+            c3.metric("📅 ATUALIZAÇÃO", hoje.strftime('%d/%m'))
 
         st.divider()
 
@@ -71,6 +70,7 @@ if not df_base.empty:
         aba1, aba2 = st.tabs(["🗓️ Visão Diária", "🏆 Curva ABC"])
 
         with aba1:
+            # Lógica de sinal para a tabela: Venda é positivo, Devolução é negativo
             df_filt['Val'] = df_filt.apply(lambda r: r['Valor_Final'] if r['CODOPER'] == 'S' else -r['Valor_Final'], axis=1)
             dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
             df_filt['Dia'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} ({dias_pt[d.weekday()]})")
@@ -98,4 +98,4 @@ if not df_base.empty:
                 abc_exibir['% Acum'] = abc_exibir['% Acum'].map('{:.2f}%'.format)
                 st.table(abc_exibir[['Curva', 'Produto', 'Valor_Final', '% Total', '% Acum']])
 else:
-    st.info("Aguardando sincronização do RotiFácil com o WinThor... Por favor, verifique se o script no PC está rodando.")
+    st.info("Aguardando sincronização do RotiFácil...")

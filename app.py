@@ -10,9 +10,8 @@ st.set_page_config(page_title="RotiFácil", layout="wide", page_icon="🍗")
 st.sidebar.title("🏢 Unidade")
 unidade = st.sidebar.selectbox("Escolha a Loja:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
 
-@st.cache_data(ttl=30) # Cache curto para forçar a atualização
+@st.cache_data(ttl=30)
 def carregar_dados(loja):
-    # Força a leitura do arquivo correto
     nome_arq = "vendas_filial2.csv" if "Filial 2" in loja else "vendas_filial5.csv"
     url = f"https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/{nome_arq}?v={int(time.time())}"
     df = pd.read_csv(url)
@@ -40,18 +39,19 @@ try:
         total_venda = df_filt['Valor_Final'].sum()
 
         if "Filial 2" in unidade:
-            # Planalto é o cliente 6613
+            # Venda para o Planalto via cliente 6613
             v_planalto = df_filt[df_filt['CODCLI'] == 6613]['Valor_Final'].sum()
             v_local = total_venda - v_planalto
             
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("🛒 VENDA LOCAL", fmt(v_local))
-            c2.metric("🏪 VENDA PLANALTO", fmt(v_planalto))
+            c2.metric("🏪 SAÍDA P/ PLANALTO", fmt(v_planalto))
             c3.metric("📊 TOTAL BRUTO", fmt(total_venda))
             c4.metric("💰 ACUMULADO MÊS", fmt(total_venda) if ini == primeiro_dia else "---")
         else:
+            # Filial 5: Mostra apenas a venda direta (já filtrada no robô)
             c1, c2, c3 = st.columns(3)
-            c1.metric("🛒 VENDA BRUTA", fmt(total_venda))
+            c1.metric("🛒 VENDA BRUTA (Checkout)", fmt(total_venda))
             c2.metric("💰 ACUMULADO MÊS", fmt(total_venda) if ini == primeiro_dia else "---")
             c3.metric("📅 ATUALIZAÇÃO", hoje.strftime('%d/%m'))
 
@@ -69,5 +69,14 @@ try:
                 tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
                 st.dataframe(tab.map(fmt), use_container_width=True)
 
+        with aba2:
+            st.subheader("Análise de Curva ABC")
+            abc = df_filt.groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
+            if not abc.empty:
+                abc['% Total'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()) * 100
+                abc['% Acum'] = abc['% Total'].cumsum()
+                abc['Curva'] = abc['% Acum'].apply(lambda x: 'A' if x <= 80 else ('B' if x <= 95 else 'C'))
+                st.table(abc.map(lambda x: fmt(x) if isinstance(x, float) and x > 100 else x))
+
 except Exception as e:
-    st.info("Aguardando os dados serem processados pelo robô...")
+    st.info("Sincronizando dados... O RotiFácil está sendo atualizado.")

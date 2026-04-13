@@ -27,18 +27,22 @@ def extrair(filial, arquivo):
             filtro_venda_real = "AND M.CODCLI NOT IN (6613)" 
 
         query = f"""
-            SELECT P.DESCRICAO AS "Produto", TRUNC(M.DTMOV) AS "Data", M.CODOPER, M.CODCLI,
-                   SUM(ROUND(M.QT * M.PUNIT, 2)) AS "Valor_Final" 
-            FROM MMFRIOS.PCMOV M
-            JOIN MMFRIOS.PCPRODUT P ON M.CODPROD = P.CODPROD
-            WHERE P.CODEPTO = 105 
-              AND M.CODFILIAL = {filial} 
-              AND M.DTCANCEL IS NULL
-              AND M.CODOPER = 'S'
-              {filtro_venda_real}
-              AND M.DTMOV >= TRUNC(SYSDATE, 'MM')
-            GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), M.CODOPER, M.CODCLI
-        """
+    SELECT 
+        P.DESCRICAO AS "Produto", 
+        TRUNC(M.DTMOV) AS "Data", 
+        M.CODOPER, 
+        M.CODCLI,
+        SUM(M.QT) AS "Qtd_KG", 
+        SUM(ROUND(M.QT * M.PUNIT, 2)) AS "Valor_Final" 
+    FROM MMFRIOS.PCMOV M
+    JOIN MMFRIOS.PCPRODUT P ON M.CODPROD = P.CODPROD
+    WHERE P.CODEPTO = 105 
+      AND M.CODFILIAL = {filial} 
+      AND M.DTCANCEL IS NULL
+      AND M.CODOPER IN ('S', 'E', 'ED')
+      AND M.DTMOV >= TRUNC(SYSDATE, 'MM')
+    GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), M.CODOPER, M.CODCLI
+    """
         df = pd.read_sql(query, con=conn)
         conn.close()
         if not df.empty:

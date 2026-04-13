@@ -41,7 +41,7 @@ def carregar(arq):
         return df
     except: return pd.DataFrame()
 
-unidade = st.sidebar.selectbox("Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
+unidade = st.sidebar.selectbox("🏢 Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
 df_base = carregar("vendas_filial2.csv" if "Filial 2" in unidade else "vendas_filial5.csv")
 df_avarias = carregar("avarias.csv")
 

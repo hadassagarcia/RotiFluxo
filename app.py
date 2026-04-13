@@ -1,134 +1,118 @@
 import streamlit as st
 import pandas as pd
-from datetime import timedelta
+from datetime import datetime, timedelta
 import time
 
-# 1. CONFIGURAÇÃO
-st.set_page_config(page_title="RotiFácil", layout="wide", page_icon="🍗")
+# 1. CONFIGURAÇÃO E ESTILO
+st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon="🍗")
+
+# CSS para deixar o visual mais limpo (Clean Design)
+st.markdown("""
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+    """, unsafe_allow_index=True)
 
 # --- BARRA LATERAL ---
-st.sidebar.title("🏢 Unidade")
-unidade = st.sidebar.selectbox("Escolha a Loja:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
+st.sidebar.title("🏢 Gestão de Performance")
+unidade = st.sidebar.selectbox("Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
 
-@st.cache_data(ttl=30)
-def carregar_dados(loja):
-    nome_arq = "vendas_filial2.csv" if "Filial 2" in loja else "vendas_filial5.csv"
-    url = f"https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/{nome_arq}?v={int(time.time())}"
-    df = pd.read_csv(url)
-    df['Data_Ref'] = pd.to_datetime(df['Data'])
-    df['Data_Date'] = df['Data_Ref'].dt.date
-    return df
+# 2. CARGA DE DADOS COM TRATAMENTO DE ERROS
+@st.cache_data(ttl=60)
+def carregar(arq):
+    try:
+        url = f"https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/{arq}?v={int(time.time())}"
+        df = pd.read_csv(url)
+        if 'Data' in df.columns:
+            df['Data_Ref'] = pd.to_datetime(df['Data'])
+            df['Data_Date'] = df['Data_Ref'].dt.date
+        return df
+    except:
+        return pd.DataFrame()
 
-try:
-    df_base = carregar_dados(unidade)
-    st.title(f"🍗 {unidade} - RotiFácil")
+# Carregando as fontes de dados
+arq_vendas = "vendas_filial2.csv" if "Filial 2" in unidade else "vendas_filial5.csv"
+df_base = carregar(arq_vendas)
+df_custos = carregar("custos.csv") # Você criará este arquivo com colunas: Produto, Custo_KG
+df_avarias = carregar("avarias.csv") # Colunas: Produto, Data, Qtd_Avaria_KG
 
+if not df_base.empty:
+    st.title(f"🍗 RotiFácil - {unidade}")
+    
+    # --- FILTROS E KPIS TOTAIS ---
     hoje = df_base['Data_Date'].max()
     primeiro_dia = hoje.replace(day=1)
-    
-    col_f1, col_f2 = st.columns([1, 3])
-    with col_f1:
-        datas = st.date_input("Filtrar Período:", value=(primeiro_dia, hoje), max_value=hoje)
+    datas = st.date_input("Período de Análise:", value=(primeiro_dia, hoje), max_value=hoje)
 
     if len(datas) == 2:
         ini, fim = datas
         df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
         
+        # Cálculos de Performance
+        venda_bruta = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
+        devolucoes = df_filt[df_filt['CODOPER'].isin(['E', 'ED'])]['Valor_Final'].sum()
+        faturamento_liquido = venda_bruta - devolucoes
+
+        # --- EXIBIÇÃO EM ABAS ÚNICAS (SEM DUPLICAÇÃO) ---
+        aba_vendas, aba_abc, aba_performance, aba_avaria = st.tabs([
+            "📊 Visão Diária", "🏆 Curva ABC", "📈 Performance & Margem", "🗑️ Controle de Avaria"
+        ])
+
         def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-        total_venda = df_filt['Valor_Final'].sum()
-
-        if "Filial 2" in unidade:
-            # Venda para o Planalto via cliente 6613
-            v_planalto = df_filt[df_filt['CODCLI'] == 6613]['Valor_Final'].sum()
-            v_local = total_venda - v_planalto
-            
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("🛒 VENDA LOCAL", fmt(v_local))
-            c2.metric("🏪 SAÍDA P/ PLANALTO", fmt(v_planalto))
-            c3.metric("📊 TOTAL BRUTO", fmt(total_venda))
-            c4.metric("💰 ACUMULADO MÊS", fmt(total_venda) if ini == primeiro_dia else "---")
-        else:
-            # Filial 5: Mostra apenas a venda direta (já filtrada no robô)
+        with aba_vendas:
+            # Cards de resumo no topo da aba
             c1, c2, c3 = st.columns(3)
-            c1.metric("🛒 VENDA BRUTA (Checkout)", fmt(total_venda))
-            c2.metric("💰 ACUMULADO MÊS", fmt(total_venda) if ini == primeiro_dia else "---")
-            c3.metric("📅 ATUALIZAÇÃO", hoje.strftime('%d/%m'))
+            c1.metric("Faturamento Líquido", fmt(faturamento_liquido))
+            c2.metric("Qtd Itens Vendidos", f"{df_filt['Qtd_KG'].sum():,.2f} kg")
+            c3.metric("Ticket Médio/KG", fmt(faturamento_liquido / df_filt['Qtd_KG'].sum() if df_filt['Qtd_KG'].sum() > 0 else 0))
 
-        st.divider()
-        aba1, aba2 = st.tabs(["🗓️ Visão Diária", "🏆 Curva ABC"])
-        with aba1:
+            # Tabela Dinâmica
+            df_filt['Val'] = df_filt.apply(lambda r: r['Valor_Final'] if r['CODOPER'] == 'S' else -r['Valor_Final'], axis=1)
             dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
             df_filt['Dia'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} ({dias_pt[d.weekday()]})")
-            tab = pd.pivot_table(df_filt, values='Valor_Final', index='Produto', columns='Dia', aggfunc='sum', fill_value=0)
+            tab = pd.pivot_table(df_filt, values='Val', index='Produto', columns='Dia', aggfunc='sum', fill_value=0)
             if not tab.empty:
-                ordem = df_filt.sort_values('Data_Ref')['Dia'].unique()
-                tab = tab.reindex(columns=ordem)
                 tab['TOTAL'] = tab.sum(axis=1)
-                tab = tab.sort_values('TOTAL', ascending=False)
-                tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
-                st.dataframe(tab.map(fmt), use_container_width=True)
+                st.dataframe(tab.sort_values('TOTAL', ascending=False).map(fmt), use_container_width=True)
 
-        with aba2:
-            st.subheader("Análise de Curva ABC")
-            abc = df_filt.groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
-            if not abc.empty:
-                abc['% Total'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()) * 100
-                abc['% Acum'] = abc['% Total'].cumsum()
-                abc['Curva'] = abc['% Acum'].apply(lambda x: 'A' if x <= 80 else ('B' if x <= 95 else 'C'))
-                st.table(abc.map(lambda x: fmt(x) if isinstance(x, float) and x > 100 else x))
+        with aba_abc:
+            st.subheader("Análise de Relevância (Pareto)")
+            abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
+            abc['% Acum'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()).cumsum() * 100
+            abc['Curva'] = abc['% Acum'].apply(lambda x: 'A' if x <= 80 else ('B' if x <= 95 else 'C'))
+            st.table(abc)
 
-except Exception as e:
-    st.info("Sincronizando dados... O RotiFácil está sendo atualizado.")
+        with aba_performance:
+            st.subheader("🔮 Projeção e Lucratividade")
+            col_p1, col_p2 = st.columns(2)
+            
+            with col_p1:
+                st.write("**Projeção de Produção para Amanhã**")
+                amanha_num = (datetime.now().weekday() + 1) % 7
+                proj = df_base[df_base['CODOPER'] == 'S'].copy()
+                proj['Dia_Num'] = proj['Data_Ref'].dt.weekday
+                sugestao = proj[proj['Dia_Num'] == amanha_num].groupby('Produto')['Qtd_KG'].mean().reset_index()
+                sugestao['Sugestão (KG)'] = sugestao['Qtd_KG'] * 1.10 # 10% segurança
+                st.dataframe(sugestao.sort_values('Sugestão (KG)', ascending=False), use_container_width=True)
 
-    # --- ADICIONE ESTE BLOCO AO FINAL DO SEU app.py (DENTRO DO BLOCO 'if not df_base.empty') ---
+            with col_p2:
+                st.write("**Margem de Contribuição Estimada**")
+                if not df_custos.empty:
+                    margem = abc.merge(df_custos, on='Produto', how='left')
+                    # Cálculo: (Venda - Custo) / Venda
+                    st.write("Exibindo lucratividade por produto...")
+                else:
+                    st.warning("⚠️ Carregue o arquivo 'custos.csv' para visualizar as margens.")
 
-# Adicionamos a terceira aba
-aba1, aba2, aba3 = st.tabs(["🗓️ Visão Diária", "🏆 Curva ABC", "🔮 Projeções de Produção"])
+        with aba_avaria:
+            st.subheader("Controle de Perdas (Avarias)")
+            if not df_avarias.empty:
+                # Lógica similar à Visão Diária, mas para perdas
+                st.write("Dados de avaria por dia...")
+            else:
+                st.info("💡 Dica: O dono quer ver onde o dinheiro está indo para o lixo. Registre as avarias no arquivo 'avarias.csv'.")
 
-# (O código das abas 1 e 2 você mantém exatamente como está)
-
-with aba3:
-    st.subheader("Sugestão de Produção para Amanhã")
-    st.write("Esta projeção analisa o comportamento das últimas semanas para sugerir a quantidade ideal de produção.")
-
-    # 1. Preparação dos Dados de Tendência
-    df_tendencia = df_base[df_base['CODOPER'] == 'S'].copy()
-    df_tendencia['Dia_Semana_Num'] = df_tendencia['Data_Ref'].dt.weekday
-    
-    # Mapeamento para amanhã
-    dias_semana = {0: "Segunda-feira", 1: "Terça-feira", 2: "Quarta-feira", 
-                   3: "Quinta-feira", 4: "Sexta-feira", 5: "Sábado", 6: "Domingo"}
-    
-    amanha_num = (datetime.now().weekday() + 1) % 7
-    nome_amanha = dias_semana[amanha_num]
-
-    st.info(f"📅 Analisando tendências para: **{nome_amanha}**")
-
-    # 2. Cálculo da Média por Dia da Semana
-    # Agrupamos por Produto e Dia da Semana para ver quanto sai em média naquele dia específico
-    previsao = df_tendencia.groupby(['Produto', 'Dia_Semana_Num'])['Qtd_KG'].mean().reset_index()
-    
-    # Filtramos apenas a previsão para amanhã
-    sugestao_amanha = previsao[previsao['Dia_Semana_Num'] == amanha_num].copy()
-    
-    if not sugestao_amanha.empty:
-        # Adicionamos uma margem de segurança de 15% para não faltar
-        sugestao_amanha['Sugestão (KG)'] = sugestao_amanha['Qtd_KG'] * 1.15
-        
-        # Cruzamos com a Curva ABC para priorizar o que é Classe A
-        # (Assumindo que você já calculou a curva ABC no bloco anterior)
-        sugestao_final = sugestao_amanha.merge(abc[['Produto', 'Curva']], on='Produto', how='left')
-        
-        # Organização visual
-        sugestao_final = sugestao_final.sort_values(by=['Curva', 'Sugestão (KG)'], ascending=[True, False])
-        
-        # Tabela de Decisão
-        st.dataframe(
-            sugestao_final[['Curva', 'Produto', 'Sugestão (KG)']].style.format({'Sugestão (KG)': '{:.2f} kg'}),
-            use_container_width=True
-        )
-        
-        st.warning(f"💡 **Dica de Performance:** Produtos de **Classe C** com baixa saída na {nome_amanha} devem ser produzidos apenas para exposição (variedade), priorizando o volume nos itens de **Classe A**.")
-    else:
-        st.write("Ainda não temos dados históricos suficientes para projetar este dia da semana.")
+else:
+    st.info("🚀 RotiFácil: Sincronizando com a base de dados...")

@@ -7,7 +7,7 @@ import time
 st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon="🍗")
 
 # CONSTANTES DE GESTÃO
-META_FATURAMENTO = 50000.00
+META_FATURAMENTO = 150000.00
 IMPOSTO_CMV_FIXO = 0.2925 
 TABELA_PRECOS_CUSTOS = {
     "EMPADAO FRANGO KG": {"venda": 45.90, "custo": 18.50},

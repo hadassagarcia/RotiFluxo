@@ -13,7 +13,7 @@ IMPOSTO_CMV_FIXO = 0.2925
 # --- TABELA DE CONTROLE MANUAL (VENDA E CUSTO) ---
 # Aqui você manda no preço. O sistema usará esses valores para calcular o lucro.
 TABELA_GERENCIAL = {
-    "EMPADAO FRANGO KG": {"venda": 45.90, "custo": 18.50},
+    "EMPADAO FRANGO KG": {"venda": 49.99, "custo": 20.50},
     "CUSCUZ C/ CARNE MOIDA KG": {"venda": 32.00, "custo": 12.00},
     "LASANHA FRANGO KG": {"venda": 48.00, "custo": 19.80},
     "PATE FRANGO KG": {"venda": 38.00, "custo": 14.50},
@@ -23,7 +23,7 @@ TABELA_GERENCIAL = {
     "MACAXEIRA C/ CALABRESA ACEB KG": {"venda": 28.00, "custo": 11.00},
     "CARNE C/ MACAXEIRA KG": {"venda": 42.00, "custo": 16.50},
     "BAIAO DE DOIS CF KG": {"venda": 35.00, "custo": 13.00},
-    "FRANGO ASSADO KG": {"venda": 29.90, "custo": 14.00},
+    "FRANGO ASSADO CF METADE KG": {"venda": 34.99, "custo": 23.00},
     "FRANGO ASSADO": {"venda": 29.90, "custo": 14.00},
 }
 

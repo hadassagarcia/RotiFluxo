@@ -46,7 +46,7 @@ df_base = carregar("vendas_filial2.csv" if "Filial 2" in unidade else "vendas_fi
 df_avarias = carregar("avarias.csv")
 
 if not df_base.empty:
-    st.title(f"🍗 RotiFácil - {unidade}")
+    st.title(f"RotiFácil - {unidade}")
     
     # --- STATUS DE PERFORMANCE (META) ---
     fat_total_mes = df_base[df_base['CODOPER'] == 'S']['Valor_Final'].sum()

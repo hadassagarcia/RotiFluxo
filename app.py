@@ -22,10 +22,40 @@ TABELA_PRECOS_CUSTOS = {
     "BAIAO DE DOIS CF KG": {"venda": 35.00, "custo": 13.00},
 }
 
-# ESTILIZAÇÃO
+# --- ESTILIZAÇÃO PARA ACESSIBILIDADE E PERFORMANCE ---
 st.markdown("""
     <style>
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; border: 1px solid #e6e9ef; }
+    /* 1. Aumenta o texto das métricas (Faturamento/Meta) */
+    [data-testid="stMetricValue"] {
+        font-size: 32px !important;
+        font-weight: bold;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 18px !important;
+    }
+    
+    /* 2. Aumenta o texto das ABAS (Visão Diária, ABC, etc) */
+    button[data-baseweb="tab"] p {
+        font-size: 20px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* 3. Aumenta os rótulos de seleção (Unidade, Datas) */
+    label[data-testid="stWidgetLabel"] p {
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+
+    /* 4. Aumenta o texto dentro das tabelas */
+    .stDataFrame td, .stDataFrame th {
+        font-size: 16px !important;
+    }
+
+    /* 5. Aumenta textos informativos e de ajuda */
+    .stMarkdown p {
+        font-size: 18px !important;
+    }
+
     .main { background-color: #f8f9fa; }
     </style>
     """, unsafe_allow_html=True)

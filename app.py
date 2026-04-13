@@ -20,10 +20,10 @@ TABELA_PRECOS_CUSTOS = {
     "SOPA CARNE KG": {"custo": 9.50},
     "LASANHA CARNE MOIDA KG": {"custo": 22.00},
     "CUSCUZ C/ SALSICHA KG": {"custo": 7.50},
-    "MACAXEIRA C/ CALABRESA ACEB KG": {"custo": 11.00},
+    "MACAXEIRA C/ CALABRESA ACEB KG": {"custo": 14.00},
     "CARNE C/ MACAXEIRA KG": {"custo": 16.50},
-    "BAIAO DE DOIS CF KG": {"custo": 13.00},
-    "FRANGO ASSADO KG": {"custo": 14.00},
+    "BAIAO DE DOIS CF KG": {"custo": 18.00},
+    "FRANGO ASSADO KG": {"custo": 24.00},
     "FRANGO ASSADO": {"custo": 14.00},
 }
 

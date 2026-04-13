@@ -80,3 +80,55 @@ try:
 
 except Exception as e:
     st.info("Sincronizando dados... O RotiFácil está sendo atualizado.")
+
+    # --- ADICIONE ESTE BLOCO AO FINAL DO SEU app.py (DENTRO DO BLOCO 'if not df_base.empty') ---
+
+# Adicionamos a terceira aba
+aba1, aba2, aba3 = st.tabs(["🗓️ Visão Diária", "🏆 Curva ABC", "🔮 Projeções de Produção"])
+
+# (O código das abas 1 e 2 você mantém exatamente como está)
+
+with aba3:
+    st.subheader("Sugestão de Produção para Amanhã")
+    st.write("Esta projeção analisa o comportamento das últimas semanas para sugerir a quantidade ideal de produção.")
+
+    # 1. Preparação dos Dados de Tendência
+    df_tendencia = df_base[df_base['CODOPER'] == 'S'].copy()
+    df_tendencia['Dia_Semana_Num'] = df_tendencia['Data_Ref'].dt.weekday
+    
+    # Mapeamento para amanhã
+    dias_semana = {0: "Segunda-feira", 1: "Terça-feira", 2: "Quarta-feira", 
+                   3: "Quinta-feira", 4: "Sexta-feira", 5: "Sábado", 6: "Domingo"}
+    
+    amanha_num = (datetime.now().weekday() + 1) % 7
+    nome_amanha = dias_semana[amanha_num]
+
+    st.info(f"📅 Analisando tendências para: **{nome_amanha}**")
+
+    # 2. Cálculo da Média por Dia da Semana
+    # Agrupamos por Produto e Dia da Semana para ver quanto sai em média naquele dia específico
+    previsao = df_tendencia.groupby(['Produto', 'Dia_Semana_Num'])['Qtd_KG'].mean().reset_index()
+    
+    # Filtramos apenas a previsão para amanhã
+    sugestao_amanha = previsao[previsao['Dia_Semana_Num'] == amanha_num].copy()
+    
+    if not sugestao_amanha.empty:
+        # Adicionamos uma margem de segurança de 15% para não faltar
+        sugestao_amanha['Sugestão (KG)'] = sugestao_amanha['Qtd_KG'] * 1.15
+        
+        # Cruzamos com a Curva ABC para priorizar o que é Classe A
+        # (Assumindo que você já calculou a curva ABC no bloco anterior)
+        sugestao_final = sugestao_amanha.merge(abc[['Produto', 'Curva']], on='Produto', how='left')
+        
+        # Organização visual
+        sugestao_final = sugestao_final.sort_values(by=['Curva', 'Sugestão (KG)'], ascending=[True, False])
+        
+        # Tabela de Decisão
+        st.dataframe(
+            sugestao_final[['Curva', 'Produto', 'Sugestão (KG)']].style.format({'Sugestão (KG)': '{:.2f} kg'}),
+            use_container_width=True
+        )
+        
+        st.warning(f"💡 **Dica de Performance:** Produtos de **Classe C** com baixa saída na {nome_amanha} devem ser produzidos apenas para exposição (variedade), priorizando o volume nos itens de **Classe A**.")
+    else:
+        st.write("Ainda não temos dados históricos suficientes para projetar este dia da semana.")

@@ -132,21 +132,38 @@ if not df_base.empty:
 
         # --- ABA RUPTURA (REATIVADA) ---
         with aba_ruptura:
-            st.subheader("🚨 Possíveis Rupturas")
-            st.info("Produtos da Classe A que não registraram vendas na data final do período selecionado.")
-            # Identifica Classe A do período
-            abc_temp = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
-            abc_temp['% Acum'] = (abc_temp['Valor_Final'] / abc_temp['Valor_Final'].sum()).cumsum() * 100
-            classe_a = abc_temp[abc_temp['% Acum'] <= 80]['Produto'].tolist()
+          st.subheader("🚨 Analisador de Ruptura por Fluxo Horário")
+          st.write("Esta análise identifica quedas bruscas de venda em horários de pico para os produtos Classe A.")
+
+        if 'Hora' in df_filt.columns:
+         # 1. Filtramos apenas os produtos Classe A para não poluir o gráfico
+          abc_r = df_filt.groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
+          abc_r['%'] = (abc_r['Valor_Final'] / abc_r['Valor_Final'].sum()).cumsum() * 100
+          lista_classe_a = abc_r[abc_r['%'] <= 80]['Produto'].tolist()
+        
+        # 2. Seletor para focar em um produto específico da Classe A
+        prod_analise = st.selectbox("Selecione um item Classe A para auditar o fluxo:", lista_classe_a)
+        
+        df_hora = df_filt[df_filt['Produto'] == prod_analise].copy()
+        
+        # 3. Criamos a matriz de Venda x Hora
+        fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index()
+        fluxo_hora = fluxo_hora.sort_values('Hora')
+        
+        # 4. Gráfico de Performance Horária
+        st.line_chart(fluxo_hora.set_index('Hora')['Valor_Final'])
+        
+        # 5. Lógica de Alerta de Ruptura
+        ultima_hora_venda = fluxo_hora['Hora'].max()
+        if ultima_hora_venda and int(ultima_hora_venda) < 13: # Se parou de vender antes das 13h
+            st.error(f"⚠️ **ALERTA DE RUPTURA:** O produto {prod_analise} registrou a última venda às {ultima_hora_venda}h. Em dias normais, deveria vender até o fechamento.")
+        else:
+            st.success(f"✅ Fluxo normal: Última venda registrada às {ultima_hora_venda}h.")
             
-            vendas_fim = df_filt[df_filt['Data_Date'] == fim]['Produto'].unique()
-            faltantes = [p for p in classe_a if p not in vendas_fim]
-            
-            if faltantes:
-                st.warning(f"Atenção: {len(faltantes)} itens da Classe A sem venda no dia {fim.strftime('%d/%m')}:")
-                st.write(faltantes)
-            else:
-                st.success("Todos os itens da Classe A registraram vendas no encerramento do período.")
+        st.write("---")
+        st.caption("Nota: Se o gráfico acima apresentar um 'degrau' para baixo entre 11h e 13h, houve falta de produto na mesa.")
+    else:
+        st.warning("⚠️ A coluna 'Hora' ainda não foi detectada. Certifique-se de atualizar o robô e aguardar a próxima sincronização.")
 
         # --- ABA AVARIA (REATIVADA) ---
         with aba_avaria:
@@ -154,6 +171,6 @@ if not df_base.empty:
             if not df_avarias.empty:
                 st.dataframe(df_avarias)
             else:
-                st.info("Nenhuma avaria registrada no arquivo avarias.csv.")
+                st.info("Nenhuma avaria registrada no arquivo avarisas.csv.")
 
 else: st.info("Sincronizando dados com o WinThor...")

@@ -133,37 +133,41 @@ if not df_base.empty:
         # --- ABA RUPTURA (REATIVADA) ---
         with aba_ruptura:
           st.subheader("🚨 Analisador de Ruptura por Fluxo Horário")
-          st.write("Esta análise identifica quedas bruscas de venda em horários de pico para os produtos Classe A.")
+          st.write("Identifique se a venda de produtos Classe A parou antes do horário de fechamento.")
 
-        if 'Hora' in df_filt.columns:
-         # 1. Filtramos apenas os produtos Classe A para não poluir o gráfico
-          abc_r = df_filt.groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
-          abc_r['%'] = (abc_r['Valor_Final'] / abc_r['Valor_Final'].sum()).cumsum() * 100
-          lista_classe_a = abc_r[abc_r['%'] <= 80]['Produto'].tolist()
-        
-        # 2. Seletor para focar em um produto específico da Classe A
-        prod_analise = st.selectbox("Selecione um item Classe A para auditar o fluxo:", lista_classe_a)
-        
-        df_hora = df_filt[df_filt['Produto'] == prod_analise].copy()
-        
-        # 3. Criamos a matriz de Venda x Hora
-        fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index()
-        fluxo_hora = fluxo_hora.sort_values('Hora')
-        
-        # 4. Gráfico de Performance Horária
-        st.line_chart(fluxo_hora.set_index('Hora')['Valor_Final'])
-        
-        # 5. Lógica de Alerta de Ruptura
-        ultima_hora_venda = fluxo_hora['Hora'].max()
-        if ultima_hora_venda and int(ultima_hora_venda) < 13: # Se parou de vender antes das 13h
-            st.error(f"⚠️ **ALERTA DE RUPTURA:** O produto {prod_analise} registrou a última venda às {ultima_hora_venda}h. Em dias normais, deveria vender até o fechamento.")
-        else:
-            st.success(f"✅ Fluxo normal: Última venda registrada às {ultima_hora_venda}h.")
+    # 1. Verificamos se a coluna 'Hora' existe (vinda do robô atualizado)
+    if 'Hora' in df_filt.columns:
+        # 2. Calculamos a Classe A dinamicamente para garantir que a variável exista
+        vendas_abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
+        if not vendas_abc.empty:
+            vendas_abc['% Acum'] = (vendas_abc['Valor_Final'] / vendas_abc['Valor_Final'].sum()).cumsum() * 100
+            lista_classe_a = vendas_abc[vendas_abc['% Acum'] <= 80]['Produto'].tolist()
             
-        st.write("---")
-        st.caption("Nota: Se o gráfico acima apresentar um 'degrau' para baixo entre 11h e 13h, houve falta de produto na mesa.")
+            if not lista_classe_a: # Caso não tenha Classe A definida
+                lista_classe_a = vendas_abc['Produto'].head(5).tolist()
+
+            # 3. Seletor de Produto (Corrigido)
+            prod_analise = st.selectbox("Selecione um item Classe A para auditar o fluxo:", lista_classe_a)
+            
+            if prod_analise:
+                df_hora = df_filt[df_filt['Produto'] == prod_analise].copy()
+                fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index().sort_values('Hora')
+                
+                # Exibe o gráfico de linha (Pulsação da Venda)
+                st.line_chart(fluxo_hora.set_index('Hora')['Valor_Final'])
+                
+                # 4. Lógica de Alerta (Baseado no horário comercial da rotisseria)
+                if not fluxo_hora.empty:
+                    ultima_h = int(fluxo_hora['Hora'].max())
+                    if ultima_h < 13:
+                        st.error(f"⚠️ **POSSÍVEL RUPTURA:** {prod_analise} parou de vender às {ultima_h}h. Verifique se a bandeja acabou antes do almoço terminar.")
+                    else:
+                        st.success(f"✅ Fluxo Normal: Venda registrada até às {ultima_h}h.")
+        else:
+            st.info("Aguardando dados de vendas para calcular a Classe A.")
     else:
-        st.warning("⚠️ A coluna 'Hora' ainda não foi detectada. Certifique-se de atualizar o robô e aguardar a próxima sincronização.")
+        st.warning("⚠️ **Atenção:** A coluna 'Hora' ainda não está no arquivo. Certifique-se de que o robô já rodou com o novo SQL.")
+        st.info("A lógica de ruptura por horário precisa que o robô extraia o campo TO_CHAR(M.DTMOV, 'HH24').")
 
         # --- ABA AVARIA (REATIVADA) ---
         with aba_avaria:

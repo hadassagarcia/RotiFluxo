@@ -21,29 +21,35 @@ def extrair(filial, arquivo):
     try:
         conn = oracledb.connect(user=DB_CONFIG["user"], password=DB_CONFIG["pass"], dsn=DB_CONFIG["dsn"])
         
-        # Filtro para Filial 5: Ignora o que vem da Filial 2 (cliente 6613)
-        filtro_venda_real = ""
-        if filial == 5:
-            filtro_venda_real = "AND M.CODCLI NOT IN (6613)" 
-
-        # No seu arquivo atualizar_dados.py
+        # SQL revisado: sem ponto e vírgula no final e com espaços garantidos
         query = f"""
-           SELECT 
-           P.DESCRICAO AS "Produto", 
-           TRUNC(M.DTMOV) AS "Data", 
-           TO_CHAR(M.DTMOV, 'HH24') AS "Hora", -- Nova Coluna
-           M.CODOPER, 
-           SUM(M.QT) AS "Qtd_KG", 
-           SUM(ROUND(M.QT * M.PUNIT, 2)) AS "Valor_Final" 
-    FROM MMFRIOS.PCMOV M
-       OIN MMFRIOS.PCPRODUT P ON M.CODPROD = P.CODPROD
-      WHERE P.CODEPTO = 105 
-        AND M.CODFILIAL = {filial} 
-        AND M.DTCANCEL IS NULL
-        AND M.CODOPER = 'S' -- Foco apenas em vendas para Ruptura
-        AND M.DTMOV >= TRUNC(SYSDATE, 'MM')
-    GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), TO_CHAR(M.DTMOV, 'HH24'), M.CODOPER
-"""
+            SELECT 
+                P.DESCRICAO AS "Produto", 
+                TRUNC(M.DTMOV) AS "Data", 
+                TO_CHAR(M.DTMOV, 'HH24') AS "Hora",
+                M.CODOPER, 
+                SUM(M.QT) AS "Qtd_KG", 
+                SUM(ROUND(M.QT * M.PUNIT, 2)) AS "Valor_Final" 
+            FROM MMFRIOS.PCMOV M
+            JOIN MMFRIOS.PCPRODUT P ON M.CODPROD = P.CODPROD
+            WHERE P.CODEPTO = 105 
+              AND M.CODFILIAL = {filial} 
+              AND M.DTCANCEL IS NULL
+              AND M.CODOPER = 'S'
+              AND M.DTMOV >= TRUNC(SYSDATE, 'MM')
+            GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), TO_CHAR(M.DTMOV, 'HH24'), M.CODOPER
+        """
+        
+        df = pd.read_sql(query, con=conn)
+        conn.close()
+        
+        if not df.empty:
+            df.to_csv(arquivo, index=False)
+            return True
+        return False
+    except Exception as e:
+        print(f"❌ Erro na extração da F{filial}: {e}")
+        return False
         df = pd.read_sql(query, con=conn)
         conn.close()
         if not df.empty:

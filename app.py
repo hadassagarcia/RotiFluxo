@@ -17,12 +17,12 @@ TABELA_GERENCIAL = {
     "LASANHA FRANGO KG": {"venda": 48.00, "custo": 19.80},
     "PATE FRANGO KG": {"venda": 38.00, "custo": 14.50},
     "SOPA CARNE KG": {"venda": 25.00, "custo": 9.50},
-    "LASANHA CARNE MOIDA KG": {"venda": 52.00, "custo": 22.00},
+    "LASANHA CARNE MOIDA KG": {"venda": 49.99, "custo": 21.00},
     "CUSCUZ C/ SALSICHA KG": {"venda": 22.00, "custo": 7.50},
     "MACAXEIRA C/ CALABRESA ACEB KG": {"venda": 28.00, "custo": 11.00},
     "CARNE C/ MACAXEIRA KG": {"venda": 42.00, "custo": 16.50},
     "BAIAO DE DOIS CF KG": {"venda": 35.00, "custo": 13.00},
-    "FRANGO ASSADO KG": {"venda": 29.90, "custo": 14.00},
+    "FRANGO ASSADO CORTE FACIL KG": {"venda": 34.99, "custo": 25.84},
     "FRANGO ASSADO": {"venda": 29.90, "custo": 14.00},
 }
 

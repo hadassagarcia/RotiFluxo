@@ -81,30 +81,32 @@ if not df_base.empty:
 
         # --- ABA PERFORMANCE ---
         with aba_perf:
-            st.subheader("🚀 Indicadores de Performance")
-            c1, c2 = st.columns(2)
-            with c1:
-                sem_atual = df_base[df_base['Data_Date'] >= (hoje - timedelta(days=7))]['Valor_Final'].sum()
-                sem_ant = df_base[(df_base['Data_Date'] >= (hoje - timedelta(days=14))) & (df_base['Data_Date'] < (hoje - timedelta(days=7)))]['Valor_Final'].sum()
-                if sem_ant > 0:
-                    delta = ((sem_atual - sem_ant) / sem_ant) * 100
-                    st.metric("Venda Últimos 7 Dias", fmt(sem_atual), delta=f"{delta:.2f}%")
-                else:
-                    st.metric("Venda Últimos 7 Dias", fmt(sem_atual))
-            with c2:
-                st.write("**🏆 Top 3 Faturamento (Real)**")
-                top3 = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().nlargest(3)
-                for i, (p, v) in enumerate(top3.items(), 1): st.write(f"{i}º - {p} ({fmt(v)})")
-
-            st.divider()
-            st.subheader("💰 Lucratividade Gerencial")
-            v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({'Valor_Final': 'sum', 'Qtd_KG': 'sum'}).reset_index()
-            v_prod['PV_Unit'] = v_prod.apply(lambda r: TABELA_GERENCIAL.get(r['Produto'], {}).get('venda', r['Valor_Final']/r['Qtd_KG'] if r['Qtd_KG'] > 0 else 0), axis=1)
-            v_prod['Custo_Unit'] = v_prod['Produto'].apply(lambda x: TABELA_GERENCIAL.get(x, {}).get('custo', 0.0))
-            v_prod['Fat_Gerencial'] = v_prod['Qtd_KG'] * v_prod['PV_Unit']
-            v_prod['Lucro_Liq'] = v_prod['Fat_Gerencial'] - (v_prod['Fat_Gerencial'] * IMPOSTO_CMV_FIXO) - (v_prod['Qtd_KG'] * v_prod['Custo_Unit'])
-            v_prod['Margem_%'] = (v_prod['Lucro_Liq'] / v_prod['Fat_Gerencial']) * 100
-            st.dataframe(v_prod.sort_values('Lucro_Liq', ascending=False)[['Produto', 'Fat_Gerencial', 'Lucro_Liq', 'Margem_%']].style.format({'Fat_Gerencial': fmt, 'Lucro_Liq': fmt, 'Margem_%': '{:.2f}%'}))
+            st.subheader("🚀 Indicadores Históricos")
+            # Agrupamos por produto no período selecionado (seja 1 dia ou 5 meses)
+            v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({
+                'Valor_Final': 'sum', 
+                'Qtd_KG': 'sum'
+            }).reset_index()
+            
+            if not v_prod.empty:
+                # Aplica Preço de Venda e Custo Manual
+                v_prod['PV_Unit'] = v_prod.apply(lambda r: TABELA_GERENCIAL.get(r['Produto'], {}).get('venda', r['Valor_Final']/r['Qtd_KG'] if r['Qtd_KG'] > 0 else 0), axis=1)
+                v_prod['Custo_Unit'] = v_prod['Produto'].apply(lambda x: TABELA_GERENCIAL.get(x, {}).get('custo', 0.0))
+                
+                # Faturamento Gerencial (Baseado no seu preço manual)
+                v_prod['Faturamento_Gerencial'] = v_prod['Qtd_KG'] * v_prod['PV_Unit']
+                
+                # Lucro Líquido = Fat. Gerencial - Impostos/CMV - Custo Total
+                v_prod['Lucro_Liq'] = v_prod['Faturamento_Gerencial'] - (v_prod['Faturamento_Gerencial'] * IMPOSTO_CMV_FIXO) - (v_prod['Qtd_KG'] * v_prod['Custo_Unit'])
+                
+                # Margem %
+                v_prod['Margem_%'] = v_prod.apply(lambda r: (r['Lucro_Liq'] / r['Faturamento_Gerencial'] * 100) if r['Faturamento_Gerencial'] > 0 else 0, axis=1)
+                
+                st.dataframe(v_prod.sort_values('Lucro_Liq', ascending=False)[['Produto', 'Faturamento_Gerencial', 'Lucro_Liq', 'Margem_%']].style.format({
+                    'Faturamento_Gerencial': fmt, 'Lucro_Liq': fmt, 'Margem_%': '{:.2f}%'
+                }), use_container_width=True)
+            else:
+                st.warning("Selecione um período que contenha vendas para visualizar a margem.")
 
         # --- ABA VISÃO DIÁRIA ---
         with aba_vendas:

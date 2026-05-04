@@ -10,7 +10,7 @@ st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon
 META_FATURAMENTO = 50000.00
 IMPOSTO_CMV_FIXO = 0.2925 
 
-# --- TABELA DE CONTROLE MANUAL (VENDA E CUSTO) ---
+# --- TABELA DE CONTROLE MANUAL ---
 TABELA_GERENCIAL = {
     "EMPADAO FRANGO KG": {"venda": 45.90, "custo": 18.50},
     "CUSCUZ C/ CARNE MOIDA KG": {"venda": 32.00, "custo": 12.00},
@@ -26,15 +26,13 @@ TABELA_GERENCIAL = {
     "FRANGO ASSADO": {"venda": 29.90, "custo": 14.00},
 }
 
-# --- ESTILIZAÇÃO (FONTES AMPLIADAS) ---
+# --- ESTILIZAÇÃO ---
 st.markdown("""
     <style>
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: bold; }
-    [data-testid="stMetricLabel"] { font-size: 18px !important; }
     button[data-baseweb="tab"] p { font-size: 20px !important; font-weight: 600 !important; }
-    label[data-testid="stWidgetLabel"] p { font-size: 18px !important; font-weight: bold !important; }
+    label[data-testid="stWidgetLabel"] p { font-size: 20px !important; font-weight: bold !important; }
     .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
-    .stMarkdown p { font-size: 18px !important; }
     .main { background-color: #f8f9fa; }
     </style>
     """, unsafe_allow_html=True)
@@ -56,77 +54,64 @@ df_avarias = carregar("avarias.csv")
 
 if not df_base.empty:
     st.title(f"🍗 RotiFácil - {unidade}")
-    
-    # --- STATUS DA META (APENAS MÊS ATUAL - MAIO/2026) ---
-    hoje_ref = datetime(2026, 5, 4).date() # Baseado na data atual do sistema
-    inicio_mes_atual = hoje_ref.replace(day=1)
-    
-    df_mes_atual = df_base[(df_base['CODOPER'] == 'S') & (df_base['Data_Date'] >= inicio_mes_atual)]
-    fat_mes_real = df_mes_atual['Valor_Final'].sum()
-    
-    progresso = min(fat_mes_real / META_FATURAMENTO, 1.0)
-    st.subheader(f"🎯 Status de Performance (Meta Mensal: R$ {META_FATURAMENTO:,.2f})")
-    st.progress(progresso)
-    st.write(f"Acumulado em **Maio**: **R$ {fat_mes_real:,.2f}** ({progresso*100:.1f}%)")
 
-    st.divider()
+    # 1. SELETOR DE DATAS (Movido para cima para tornar o resto dinâmico)
     hoje_dados = df_base['Data_Date'].max()
-    datas_sel = st.date_input("📅 Período de Análise Histórica:", value=(hoje_dados.replace(day=1), hoje_dados), max_value=hoje_dados)
+    datas_sel = st.date_input("📅 Selecione o Período de Análise:", value=(hoje_dados.replace(day=1), hoje_dados), max_value=hoje_dados)
 
     if len(datas_sel) == 2:
         ini, fim = datas_sel
+        # Filtragem principal que alimenta TODO o dashboard
         df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
+        
+        # --- STATUS DA META DINÂMICO ---
+        # Agora ele soma o que foi filtrado no calendário
+        fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
+        progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
+        
+        st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
+        st.progress(progresso)
+        
+        # Texto dinâmico que avisa qual período está sendo somado
+        st.write(f"Total Vendido entre **{ini.strftime('%d/%m')}** e **{fim.strftime('%d/%m')}**: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
+
+        st.divider()
 
         aba_perf, aba_vendas, aba_abc, aba_ruptura, aba_avaria = st.tabs([
-            "📈 Performance & Margem", "📊 Visão Diária", "🏆 Curva ABC", "🚨 Ruptura", "🗑️ Avaria"
+            "📈 Margem", "📊 Visão Diária", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
         ])
 
         def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
         # --- ABA PERFORMANCE ---
         with aba_perf:
-            st.subheader("🚀 Indicadores do Período Selecionado")
-            v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({
-                'Valor_Final': 'sum', 
-                'Qtd_KG': 'sum'
-            }).reset_index()
-            
+            v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({'Valor_Final': 'sum', 'Qtd_KG': 'sum'}).reset_index()
             if not v_prod.empty:
                 v_prod['PV_Unit'] = v_prod.apply(lambda r: TABELA_GERENCIAL.get(r['Produto'], {}).get('venda', r['Valor_Final']/r['Qtd_KG'] if r['Qtd_KG'] > 0 else 0), axis=1)
                 v_prod['Custo_Unit'] = v_prod['Produto'].apply(lambda x: TABELA_GERENCIAL.get(x, {}).get('custo', 0.0))
-                
                 v_prod['Faturamento_Gerencial'] = v_prod['Qtd_KG'] * v_prod['PV_Unit']
                 v_prod['Lucro_Liq'] = v_prod['Faturamento_Gerencial'] - (v_prod['Faturamento_Gerencial'] * IMPOSTO_CMV_FIXO) - (v_prod['Qtd_KG'] * v_prod['Custo_Unit'])
-                
                 v_prod['Margem_%'] = v_prod.apply(lambda r: (r['Lucro_Liq'] / r['Faturamento_Gerencial'] * 100) if r['Faturamento_Gerencial'] > 0 else 0, axis=1)
-                
                 st.dataframe(v_prod.sort_values('Lucro_Liq', ascending=False)[['Produto', 'Faturamento_Gerencial', 'Lucro_Liq', 'Margem_%']].style.format({
                     'Faturamento_Gerencial': fmt, 'Lucro_Liq': fmt, 'Margem_%': '{:.2f}%'
                 }), use_container_width=True)
-            else:
-                st.warning("Sem vendas no período selecionado.")
 
         # --- ABA VISÃO DIÁRIA ---
         with aba_vendas:
-            st.subheader("📊 Faturamento por Dia")
-            if not df_filt.empty:
-                df_filt['Val'] = df_filt.apply(lambda r: r['Valor_Final'] if r['CODOPER'] == 'S' else -r['Valor_Final'], axis=1)
-                dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
-                df_filt['Data_Rotulo'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} {dias_pt[d.weekday()]}")
-                tab = pd.pivot_table(df_filt, values='Val', index='Produto', columns='Data_Rotulo', aggfunc='sum', fill_value=0)
-                if not tab.empty:
-                    ordem_cols = sorted(df_filt['Data_Rotulo'].unique(), key=lambda x: x[:5])
-                    tab = tab.reindex(columns=ordem_cols)
-                    tab['TOTAL PRODUTO'] = tab.sum(axis=1)
-                    tab = tab.sort_values('TOTAL PRODUTO', ascending=False)
-                    tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
-                    st.dataframe(tab.map(fmt), use_container_width=True)
-            else:
-                st.info("Sem dados para exibir na visão diária.")
+            df_filt['Val'] = df_filt.apply(lambda r: r['Valor_Final'] if r['CODOPER'] == 'S' else -r['Valor_Final'], axis=1)
+            dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
+            df_filt['Data_Rotulo'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} {dias_pt[d.weekday()]}")
+            tab = pd.pivot_table(df_filt, values='Val', index='Produto', columns='Data_Rotulo', aggfunc='sum', fill_value=0)
+            if not tab.empty:
+                ordem_cols = sorted(df_filt['Data_Rotulo'].unique(), key=lambda x: x[:5])
+                tab = tab.reindex(columns=ordem_cols)
+                tab['TOTAL'] = tab.sum(axis=1)
+                tab = tab.sort_values('TOTAL', ascending=False)
+                tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
+                st.dataframe(tab.map(fmt), use_container_width=True)
 
         # --- ABA CURVA ABC ---
         with aba_abc:
-            st.subheader("🏆 Classificação de Produtos (Período)")
             abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
             if not abc.empty:
                 abc['% Acum'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()).cumsum() * 100
@@ -135,41 +120,22 @@ if not df_base.empty:
 
         # --- ABA RUPTURA ---
         with aba_ruptura:
-            st.subheader("🚨 Analisador de Ruptura por Fluxo Horário")
             if 'Hora' in df_filt.columns:
                 vendas_abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
                 if not vendas_abc.empty:
                     vendas_abc['% Acum'] = (vendas_abc['Valor_Final'] / vendas_abc['Valor_Final'].sum()).cumsum() * 100
                     lista_classe_a = vendas_abc[vendas_abc['% Acum'] <= 80]['Produto'].tolist()
-                    if not lista_classe_a:
-                        lista_classe_a = vendas_abc['Produto'].head(5).tolist()
-
-                    prod_analise = st.selectbox("Selecione um item Classe A para auditar o fluxo:", lista_classe_a)
-                    
-                    if prod_analise:
-                        df_hora = df_filt[(df_filt['Produto'] == prod_analise) & (df_filt['Data_Date'] == fim)].copy()
-                        if not df_hora.empty:
-                            fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index().sort_values('Hora')
-                            st.line_chart(fluxo_hora.set_index('Hora')['Valor_Final'])
-                            
-                            ultima_h = int(fluxo_hora['Hora'].max())
-                            if ultima_h < 13:
-                                st.error(f"⚠️ **POSSÍVEL RUPTURA:** {prod_analise} parou de vender às {ultima_h}h no dia {fim.strftime('%d/%m')}.")
-                            else:
-                                st.success(f"✅ Fluxo Normal: Venda registrada até às {ultima_h}h.")
-                        else:
-                            st.warning(f"Sem vendas de {prod_analise} no dia {fim.strftime('%d/%m')}.")
-                else:
-                    st.info("Aguardando dados de vendas para calcular a Classe A.")
-            else:
-                st.warning("⚠️ Coluna 'Hora' não detectada no arquivo CSV.")
+                    prod_analise = st.selectbox("Selecione um item Classe A:", lista_classe_a if lista_classe_a else vendas_abc['Produto'].head(5).tolist())
+                    df_hora = df_filt[(df_filt['Produto'] == prod_analise) & (df_filt['Data_Date'] == fim)].copy()
+                    if not df_hora.empty:
+                        fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index().sort_values('Hora')
+                        st.line_chart(fluxo_hora.set_index('Hora')['Valor_Final'])
+                        ultima_h = int(fluxo_hora['Hora'].max())
+                        if ultima_h < 13: st.error(f"Ruptura Detectada às {ultima_h}h no dia {fim.strftime('%d/%m')}.")
+                        else: st.success(f"Fluxo Normal até às {ultima_h}h.")
 
         # --- ABA AVARIA ---
         with aba_avaria:
-            st.subheader("🗑️ Controle de Desperdício")
-            if not df_avarias.empty:
-                st.dataframe(df_avarias)
-            else:
-                st.info("Nenhuma avaria registrada.")
+            st.dataframe(df_avarias) if not df_avarias.empty else st.info("Sem avarias.")
 
-else: st.info("Sincronizando dados com o WinThor...")
+else: st.info("Sincronizando dados...")

@@ -8,30 +8,40 @@ st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon
 
 # CONSTANTES DE GESTÃO
 META_FATURAMENTO = 50000.00
-IMPOSTO_CMV_FIXO = 0.2925 
+IMPOSTO_PERCENTUAL = 0.2925  # 29,25% sobre o Preço de Venda
 
-# --- TABELA DE CONTROLE MANUAL ---
-TABELA_GERENCIAL = {
-    "EMPADAO FRANGO KG": {"venda": 45.90, "custo": 18.50},
-    "CUSCUZ C/ CARNE MOIDA KG": {"venda": 32.00, "custo": 12.00},
-    "LASANHA FRANGO KG": {"venda": 48.00, "custo": 19.80},
-    "PATE FRANGO KG": {"venda": 38.00, "custo": 14.50},
-    "SOPA CARNE KG": {"venda": 25.00, "custo": 9.50},
-    "LASANHA CARNE MOIDA KG": {"venda": 49.99, "custo": 21.00},
-    "CUSCUZ C/ SALSICHA KG": {"venda": 22.00, "custo": 7.50},
-    "MACAXEIRA C/ CALABRESA ACEB KG": {"venda": 28.00, "custo": 11.00},
-    "CARNE C/ MACAXEIRA KG": {"venda": 42.00, "custo": 16.50},
-    "BAIAO DE DOIS CF KG": {"venda": 35.00, "custo": 13.00},
-    "FRANGO ASSADO CORTE FACIL KG": {"venda": 34.99, "custo": 25.84},
-    "FRANGO ASSADO": {"venda": 29.90, "custo": 14.00},
+# --- TABELA DE PRECIFICAÇÃO ATUALIZADA (DADOS DA PLANILHA) ---
+# Estrutura: "PRODUTO": [Custo_Base, Preco_Venda]
+PRECIFICACAO_REAL = {
+    "ARROZ C/ CREME FRANGO KG": [16.39, 33.99],
+    "ARROZ CREMOSO FRANGO KG": [16.44, 39.99],
+    "ARROZ LEITE C/ CARNE SOL KG": [15.05, 41.99],
+    "BAIAO DE DOIS CF KG": [16.99, 34.99],
+    "CARNE C/ MACAXEIRA KG": [0.00, 29.99], # Custo base não informado na imagem
+    "CUSCUZ C/ CARNE KG": [14.90, 29.99],
+    "CUSCUZ C/ CARNE MOIDA KG": [10.23, 25.99],
+    "CUSCUZ C/ SALSICHA KG": [7.90, 22.99],
+    "EMPADAO CARNE SOL KG": [21.82, 54.99],
+    "EMPADAO FRANGO KG": [16.69, 49.99],
+    "ESCONDIDINHO CARNE MOIDA KG": [17.18, 39.99],
+    "FRANGO ASSADO CORTE FACIL KG": [23.92, 34.99],
+    "LASANHA CARNE MOIDA KG": [21.24, 39.99],
+    "LASANHA FRANGO KG": [25.41, 39.99],
+    "MACAXEIRA C/ CALABRESA ACEB KG": [9.89, 29.99],
+    "PATE FRANGO KG": [21.85, 39.99],
+    "SOPA CARNE KG": [8.71, 29.99],
+    "TAPIOCA CARNE SOL KG": [21.05, 45.99],
+    "TAPIOCA FRANGO KG": [15.30, 41.99],
+    "TAPIOCA MISTA KG": [14.32, 47.99],
+    "TAPIOCA QUEIJO KG": [19.54, 47.99],
 }
 
 # --- ESTILIZAÇÃO ---
 st.markdown("""
     <style>
-    [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: bold; }
+    [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: bold; color: #1E3A8A; }
     button[data-baseweb="tab"] p { font-size: 20px !important; font-weight: 600 !important; }
-    label[data-testid="stWidgetLabel"] p { font-size: 20px !important; font-weight: bold !important; }
+    label[data-testid="stWidgetLabel"] p { font-size: 18px !important; font-weight: bold !important; }
     .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
     .main { background-color: #f8f9fa; }
     </style>
@@ -55,50 +65,64 @@ df_avarias = carregar("avarias.csv")
 if not df_base.empty:
     st.title(f"🍗 RotiFácil - {unidade}")
 
-    # 1. SELETOR DE DATAS (Movido para cima para tornar o resto dinâmico)
+    # --- SELETOR DE DATAS ---
     hoje_dados = df_base['Data_Date'].max()
     datas_sel = st.date_input("📅 Selecione o Período de Análise:", value=(hoje_dados.replace(day=1), hoje_dados), max_value=hoje_dados)
 
     if len(datas_sel) == 2:
         ini, fim = datas_sel
-        # Filtragem principal que alimenta TODO o dashboard
         df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
         
         # --- STATUS DA META DINÂMICO ---
-        # Agora ele soma o que foi filtrado no calendário
         fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
         progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
-        
         st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
         st.progress(progresso)
-        
-        # Texto dinâmico que avisa qual período está sendo somado
-        st.write(f"Total Vendido entre **{ini.strftime('%d/%m')}** e **{fim.strftime('%d/%m')}**: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
+        st.write(f"Total Vendido: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
 
         st.divider()
 
         aba_perf, aba_vendas, aba_abc, aba_ruptura, aba_avaria = st.tabs([
-            "📈 Margem", "📊 Visão Diária", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
+            "📈 Margem Real", "📊 Visão Diária", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
         ])
 
         def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-        # --- ABA PERFORMANCE ---
+        # --- ABA PERFORMANCE & MARGEM REAL ---
         with aba_perf:
+            st.subheader("🚀 Análise de Lucratividade (Baseada na Planilha de Precificação)")
             v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({'Valor_Final': 'sum', 'Qtd_KG': 'sum'}).reset_index()
+            
             if not v_prod.empty:
-                v_prod['PV_Unit'] = v_prod.apply(lambda r: TABELA_GERENCIAL.get(r['Produto'], {}).get('venda', r['Valor_Final']/r['Qtd_KG'] if r['Qtd_KG'] > 0 else 0), axis=1)
-                v_prod['Custo_Unit'] = v_prod['Produto'].apply(lambda x: TABELA_GERENCIAL.get(x, {}).get('custo', 0.0))
-                v_prod['Faturamento_Gerencial'] = v_prod['Qtd_KG'] * v_prod['PV_Unit']
-                v_prod['Lucro_Liq'] = v_prod['Faturamento_Gerencial'] - (v_prod['Faturamento_Gerencial'] * IMPOSTO_CMV_FIXO) - (v_prod['Qtd_KG'] * v_prod['Custo_Unit'])
-                v_prod['Margem_%'] = v_prod.apply(lambda r: (r['Lucro_Liq'] / r['Faturamento_Gerencial'] * 100) if r['Faturamento_Gerencial'] > 0 else 0, axis=1)
-                st.dataframe(v_prod.sort_values('Lucro_Liq', ascending=False)[['Produto', 'Faturamento_Gerencial', 'Lucro_Liq', 'Margem_%']].style.format({
-                    'Faturamento_Gerencial': fmt, 'Lucro_Liq': fmt, 'Margem_%': '{:.2f}%'
-                }), use_container_width=True)
+                # 1. Puxar Custo e Preço do Dicionário
+                v_prod['Custo_Base_Unit'] = v_prod['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
+                v_prod['Preco_Venda_Unit'] = v_prod['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[1])
+                
+                # 2. Cálculos conforme a planilha
+                v_prod['Faturamento_Gerencial'] = v_prod['Qtd_KG'] * v_prod['Preco_Venda_Unit']
+                v_prod['Imposto_Total'] = v_prod['Faturamento_Gerencial'] * IMPOSTO_PERCENTUAL
+                v_prod['Custo_Total_Materia_Prima'] = v_prod['Qtd_KG'] * v_prod['Custo_Base_Unit']
+                
+                v_prod['Lucro_R$'] = v_prod['Faturamento_Gerencial'] - v_prod['Imposto_Total'] - v_prod['Custo_Total_Materia_Prima']
+                
+                # Margem Real %
+                v_prod['Margem_Real'] = v_prod.apply(lambda r: (r['Lucro_R$'] / r['Faturamento_Gerencial'] * 100) if r['Faturamento_Gerencial'] > 0 else 0, axis=1)
+                
+                # Exibição
+                df_mostrar = v_prod.sort_values('Lucro_R$', ascending=False)[['Produto', 'Faturamento_Gerencial', 'Lucro_R$', 'Margem_Real']]
+                
+                st.dataframe(df_mostrar.style.format({
+                    'Faturamento_Gerencial': fmt, 
+                    'Lucro_R$': fmt, 
+                    'Margem_Real': '{:.2f}%'
+                }).map(lambda x: 'color: red; font-weight: bold' if isinstance(x, float) and x < 10 else None, subset=['Margem_Real']), 
+                use_container_width=True)
+                
+                st.caption("⚠️ Margens em vermelho estão abaixo de 10% (Crítico).")
 
         # --- ABA VISÃO DIÁRIA ---
         with aba_vendas:
-            df_filt['Val'] = df_filt.apply(lambda r: r['Valor_Final'] if r['CODOPER'] == 'S' else -r['Valor_Final'], axis=1)
+            df_filt['Val'] = df_filt['Valor_Final']
             dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
             df_filt['Data_Rotulo'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} {dias_pt[d.weekday()]}")
             tab = pd.pivot_table(df_filt, values='Val', index='Produto', columns='Data_Rotulo', aggfunc='sum', fill_value=0)
@@ -123,19 +147,21 @@ if not df_base.empty:
             if 'Hora' in df_filt.columns:
                 vendas_abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
                 if not vendas_abc.empty:
-                    vendas_abc['% Acum'] = (vendas_abc['Valor_Final'] / vendas_abc['Valor_Final'].sum()).cumsum() * 100
-                    lista_classe_a = vendas_abc[vendas_abc['% Acum'] <= 80]['Produto'].tolist()
-                    prod_analise = st.selectbox("Selecione um item Classe A:", lista_classe_a if lista_classe_a else vendas_abc['Produto'].head(5).tolist())
+                    lista_a = vendas_abc.head(10)['Produto'].tolist()
+                    prod_analise = st.selectbox("Auditar Fluxo Horário (Dia Final):", lista_a)
                     df_hora = df_filt[(df_filt['Produto'] == prod_analise) & (df_filt['Data_Date'] == fim)].copy()
                     if not df_hora.empty:
                         fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index().sort_values('Hora')
                         st.line_chart(fluxo_hora.set_index('Hora')['Valor_Final'])
-                        ultima_h = int(fluxo_hora['Hora'].max())
-                        if ultima_h < 13: st.error(f"Ruptura Detectada às {ultima_h}h no dia {fim.strftime('%d/%m')}.")
-                        else: st.success(f"Fluxo Normal até às {ultima_h}h.")
+                        ult_h = int(fluxo_hora['Hora'].max())
+                        if ult_h < 13: st.error(f"Ruptura! Parou de vender às {ult_h}h.")
+                        else: st.success(f"Fluxo normal até às {ult_h}h.")
 
         # --- ABA AVARIA ---
         with aba_avaria:
-            st.dataframe(df_avarias) if not df_avarias.empty else st.info("Sem avarias.")
+            st.subheader("🗑️ Radar de Avaria")
+            if not df_avarias.empty:
+                st.dataframe(df_avarias)
+            else: st.info("Sem avarias registradas.")
 
 else: st.info("Sincronizando dados...")

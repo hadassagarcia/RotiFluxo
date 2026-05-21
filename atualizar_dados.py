@@ -20,12 +20,12 @@ def extrair(filial, arquivo):
     try:
         conn = oracledb.connect(user=DB_CONFIG["user"], password=DB_CONFIG["pass"], dsn=DB_CONFIG["dsn"])
         
-        # SQL que busca tudo desde o início do ano
+        # SQL MESTRE: Usando DTHORASAIDA descoberto pelo Scanner!
         query = f"""
             SELECT 
                 P.DESCRICAO AS "Produto", 
                 TRUNC(M.DTMOV) AS "Data", 
-                TO_CHAR(C.DTSAIDA, 'HH24') AS "Hora",
+                TO_CHAR(C.DTHORASAIDA, 'HH24') AS "Hora",
                 M.CODOPER, 
                 SUM(M.QT) AS "Qtd_KG", 
                 SUM(ROUND(M.QT * M.PUNIT, 2)) AS "Valor_Final" 
@@ -36,8 +36,8 @@ def extrair(filial, arquivo):
               AND M.CODFILIAL = {filial} 
               AND M.DTCANCEL IS NULL
               AND M.CODOPER = 'S'
-              AND M.DTMOV >= TO_DATE('01/01/2026', 'DD/MM/YYYY') -- Começo do ano
-            GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), TO_CHAR(C.DTSAIDA, 'HH24'), M.CODOPER
+              AND M.DTMOV >= TO_DATE('01/01/2026', 'DD/MM/YYYY')
+            GROUP BY P.DESCRICAO, TRUNC(M.DTMOV), TO_CHAR(C.DTHORASAIDA, 'HH24'), M.CODOPER
         """
         
         df = pd.read_sql(query, con=conn)

@@ -10,14 +10,13 @@ st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon
 META_FATURAMENTO = 50000.00
 IMPOSTO_PERCENTUAL = 0.2925  # 29,25% sobre o Preço de Venda
 
-# --- TABELA DE PRECIFICAÇÃO ATUALIZADA (DADOS DA PLANILHA) ---
-# Estrutura: "PRODUTO": [Custo_Base, Preco_Venda]
+# --- TABELA DE PRECIFICAÇÃO ATUALIZADA ---
 PRECIFICACAO_REAL = {
     "ARROZ C/ CREME FRANGO KG": [16.39, 33.99],
     "ARROZ CREMOSO FRANGO KG": [16.44, 39.99],
     "ARROZ LEITE C/ CARNE SOL KG": [15.05, 41.99],
     "BAIAO DE DOIS CF KG": [16.99, 34.99],
-    "CARNE C/ MACAXEIRA KG": [0.00, 29.99], # Custo base não informado na imagem
+    "CARNE C/ MACAXEIRA KG": [16.50, 29.99], # Assumindo 16.50 como base
     "CUSCUZ C/ CARNE KG": [14.90, 29.99],
     "CUSCUZ C/ CARNE MOIDA KG": [10.23, 25.99],
     "CUSCUZ C/ SALSICHA KG": [7.90, 22.99],
@@ -40,7 +39,7 @@ PRECIFICACAO_REAL = {
 st.markdown("""
     <style>
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: bold; color: #1E3A8A; }
-    button[data-baseweb="tab"] p { font-size: 20px !important; font-weight: 600 !important; }
+    button[data-baseweb="tab"] p { font-size: 18px !important; font-weight: 600 !important; }
     label[data-testid="stWidgetLabel"] p { font-size: 18px !important; font-weight: bold !important; }
     .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
     .main { background-color: #f8f9fa; }
@@ -82,43 +81,32 @@ if not df_base.empty:
 
         st.divider()
 
-        aba_perf, aba_vendas, aba_abc, aba_ruptura, aba_avaria = st.tabs([
-            "📈 Margem Real", "📊 Visão Diária", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
+        # Adicionei a nova aba 'aba_pico' aqui
+        aba_perf, aba_vendas, aba_pico, aba_abc, aba_ruptura, aba_avaria = st.tabs([
+            "📈 Margem Real", "📊 Visão Diária", "⏰ Horários de Pico", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
         ])
 
         def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
         # --- ABA PERFORMANCE & MARGEM REAL ---
         with aba_perf:
-            st.subheader("🚀 Análise de Lucratividade (Baseada na Planilha de Precificação)")
             v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({'Valor_Final': 'sum', 'Qtd_KG': 'sum'}).reset_index()
-            
             if not v_prod.empty:
-                # 1. Puxar Custo e Preço do Dicionário
                 v_prod['Custo_Base_Unit'] = v_prod['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
                 v_prod['Preco_Venda_Unit'] = v_prod['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[1])
-                
-                # 2. Cálculos conforme a planilha
                 v_prod['Faturamento_Gerencial'] = v_prod['Qtd_KG'] * v_prod['Preco_Venda_Unit']
                 v_prod['Imposto_Total'] = v_prod['Faturamento_Gerencial'] * IMPOSTO_PERCENTUAL
                 v_prod['Custo_Total_Materia_Prima'] = v_prod['Qtd_KG'] * v_prod['Custo_Base_Unit']
-                
                 v_prod['Lucro_R$'] = v_prod['Faturamento_Gerencial'] - v_prod['Imposto_Total'] - v_prod['Custo_Total_Materia_Prima']
-                
-                # Margem Real %
                 v_prod['Margem_Real'] = v_prod.apply(lambda r: (r['Lucro_R$'] / r['Faturamento_Gerencial'] * 100) if r['Faturamento_Gerencial'] > 0 else 0, axis=1)
                 
-                # Exibição
                 df_mostrar = v_prod.sort_values('Lucro_R$', ascending=False)[['Produto', 'Faturamento_Gerencial', 'Lucro_R$', 'Margem_Real']]
-                
                 st.dataframe(df_mostrar.style.format({
                     'Faturamento_Gerencial': fmt, 
                     'Lucro_R$': fmt, 
                     'Margem_Real': '{:.2f}%'
                 }).map(lambda x: 'color: red; font-weight: bold' if isinstance(x, float) and x < 10 else None, subset=['Margem_Real']), 
                 use_container_width=True)
-                
-                st.caption("⚠️ Margens em vermelho estão abaixo de 10% (Crítico).")
 
         # --- ABA VISÃO DIÁRIA ---
         with aba_vendas:
@@ -134,6 +122,39 @@ if not df_base.empty:
                 tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
                 st.dataframe(tab.map(fmt), use_container_width=True)
 
+        # --- NOVA ABA: HORÁRIOS DE PICO ---
+        with aba_pico:
+            st.subheader("⏰ Mapa de Calor")
+            st.write("Descubra os horários de maior fluxo em cada dia da semana para alinhar a produção da mesa.")
+            
+            if 'Hora' in df_filt.columns:
+                df_pico = df_filt[df_filt['CODOPER'] == 'S'].copy()
+                
+                if not df_pico.empty:
+                    # Mapeando os dias da semana para agrupar corretamente
+                    dias_semana_num = {0:'0-Seg', 1:'1-Ter', 2:'2-Qua', 3:'3-Qui', 4:'4-Sex', 5:'5-Sáb', 6:'6-Dom'}
+                    df_pico['Dia_Semana'] = df_pico['Data_Ref'].dt.weekday.map(dias_semana_num)
+                    
+                    # Criando a Matriz: Linhas = Dias, Colunas = Horas, Valores = Faturamento
+                    mapa_pico = pd.pivot_table(df_pico, values='Valor_Final', index='Dia_Semana', columns='Hora', aggfunc='sum', fill_value=0)
+                    
+                    if not mapa_pico.empty:
+                        # Limpando o nome dos dias para ficar bonito (tirando o 0-, 1-)
+                        mapa_pico.index = mapa_pico.index.str[2:]
+                        
+                        # Gráfico Interativo de Fluxo por Dia
+                        dia_sel = st.selectbox("📊 Veja a curva de fluxo de um dia específico:", mapa_pico.index)
+                        st.bar_chart(mapa_pico.loc[dia_sel], color="#1E3A8A")
+                        
+                        st.divider()
+                        st.write("### 🌡️ Matriz Semanal de Faturamento por Hora")
+                        st.caption("Quanto mais forte o tom de vermelho, maior o faturamento. Use isso para saber que horas a comida precisa estar pronta!")
+                        
+                        # Exibindo o Mapa de Calor
+                        st.dataframe(mapa_pico.style.background_gradient(cmap='Reds', axis=None).format(fmt), use_container_width=True)
+            else:
+                st.warning("⚠️ Os dados de horário ainda não foram sincronizados pelo robô.")
+
         # --- ABA CURVA ABC ---
         with aba_abc:
             abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
@@ -147,8 +168,9 @@ if not df_base.empty:
             if 'Hora' in df_filt.columns:
                 vendas_abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
                 if not vendas_abc.empty:
-                    lista_a = vendas_abc.head(10)['Produto'].tolist()
-                    prod_analise = st.selectbox("Auditar Fluxo Horário (Dia Final):", lista_a)
+                    vendas_abc['% Acum'] = (vendas_abc['Valor_Final'] / vendas_abc['Valor_Final'].sum()).cumsum() * 100
+                    lista_a = vendas_abc[vendas_abc['% Acum'] <= 80]['Produto'].tolist()
+                    prod_analise = st.selectbox("Auditar Fluxo Horário (Dia Final):", lista_a if lista_a else vendas_abc['Produto'].head(5).tolist())
                     df_hora = df_filt[(df_filt['Produto'] == prod_analise) & (df_filt['Data_Date'] == fim)].copy()
                     if not df_hora.empty:
                         fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index().sort_values('Hora')

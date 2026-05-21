@@ -83,7 +83,7 @@ if not df_base.empty:
 
         # Adicionei a nova aba 'aba_pico' aqui
         aba_perf, aba_vendas, aba_pico, aba_abc, aba_ruptura, aba_avaria = st.tabs([
-            "📈 Margem Real", "📊 Visão Diária", "⏰ Mapa de Calor", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
+            "📈 Margem Real", "📊 Visão Diária", "🔥 Mapa de Calor", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
         ])
 
         def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
@@ -124,7 +124,7 @@ if not df_base.empty:
 
         # --- NOVA ABA: HORÁRIOS DE PICO ---
         with aba_pico:
-            st.subheader("⏰ Mapa de Calor")
+            st.subheader("🔥 Mapa de Calor")
             st.write("Descubra os horários de maior fluxo em cada dia da semana para alinhar a produção da mesa.")
             
             if 'Hora' in df_filt.columns:

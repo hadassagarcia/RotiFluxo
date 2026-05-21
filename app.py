@@ -12,25 +12,25 @@ IMPOSTO_PERCENTUAL = 0.2925  # 29,25% sobre o Preço de Venda
 
 # --- TABELA DE PRECIFICAÇÃO ATUALIZADA ---
 PRECIFICACAO_REAL = {
-    "ARROZ C/ CREME FRANGO KG": [16.39, 33.99],
-    "ARROZ CREMOSO FRANGO KG": [16.44, 39.99],
-    "ARROZ LEITE C/ CARNE SOL KG": [15.05, 41.99],
-    "BAIAO DE DOIS CF KG": [16.99, 34.99],
+    "ARROZ C/ CREME FRANGO KG": [16.39, 39.99],
+    "ARROZ CREMOSO FRANGO KG": [16.44, 43.99],
+    "ARROZ LEITE C/ CARNE SOL KG": [15.05, 47.99],
+    "BAIAO DE DOIS CF KG": [16.99, 36.99],
     "CARNE C/ MACAXEIRA KG": [16.50, 29.99], # Assumindo 16.50 como base
-    "CUSCUZ C/ CARNE KG": [14.90, 29.99],
-    "CUSCUZ C/ CARNE MOIDA KG": [10.23, 25.99],
-    "CUSCUZ C/ SALSICHA KG": [7.90, 22.99],
-    "EMPADAO CARNE SOL KG": [21.82, 54.99],
-    "EMPADAO FRANGO KG": [16.69, 49.99],
-    "ESCONDIDINHO CARNE MOIDA KG": [17.18, 39.99],
+    "CUSCUZ C/ CARNE KG": [14.90, 32.99],
+    "CUSCUZ C/ CARNE MOIDA KG": [10.23, 29.99],
+    "CUSCUZ C/ SALSICHA KG": [7.90, 24.99],
+    "EMPADAO CARNE SOL KG": [21.82, 55.99],
+    "EMPADAO FRANGO KG": [16.69, 52.99],
+    "ESCONDIDINHO CARNE MOIDA KG": [17.18, 44.99],
     "FRANGO ASSADO CORTE FACIL KG": [23.92, 34.99],
-    "LASANHA CARNE MOIDA KG": [21.24, 39.99],
-    "LASANHA FRANGO KG": [25.41, 39.99],
-    "MACAXEIRA C/ CALABRESA ACEB KG": [9.89, 29.99],
-    "PATE FRANGO KG": [21.85, 39.99],
-    "SOPA CARNE KG": [8.71, 29.99],
-    "TAPIOCA CARNE SOL KG": [21.05, 45.99],
-    "TAPIOCA FRANGO KG": [15.30, 41.99],
+    "LASANHA CARNE MOIDA KG": [21.24, 45.99],
+    "LASANHA FRANGO KG": [25.41, 45.99],
+    "MACAXEIRA C/ CALABRESA ACEB KG": [9.89, 37.99],
+    "PATE FRANGO KG": [21.85, 44.99],
+    "SOPA CARNE KG": [8.71, 32.99],
+    "TAPIOCA CARNE SOL KG": [21.05, 47.99],
+    "TAPIOCA FRANGO KG": [15.30, 43.99],
     "TAPIOCA MISTA KG": [14.32, 47.99],
     "TAPIOCA QUEIJO KG": [19.54, 47.99],
 }
@@ -83,7 +83,7 @@ if not df_base.empty:
 
         # Adicionei a nova aba 'aba_pico' aqui
         aba_perf, aba_vendas, aba_pico, aba_abc, aba_ruptura, aba_avaria = st.tabs([
-            "📈 Margem Real", "📊 Visão Diária", "⏰ Horários de Pico", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
+            "📈 Margem Real", "📊 Visão Diária", "⏰ Mapa de Calor", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
         ])
 
         def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')

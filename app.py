@@ -38,11 +38,17 @@ PRECIFICACAO_REAL = {
 # --- ESTILIZAÇÃO ---
 st.markdown("""
     <style>
+    /* Esconde a barra lateral antiga se houver resquícios */
+    [data-testid="stSidebar"] { display: none; }
+    
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: bold; color: #1E3A8A; }
     button[data-baseweb="tab"] p { font-size: 18px !important; font-weight: 600 !important; }
     label[data-testid="stWidgetLabel"] p { font-size: 18px !important; font-weight: bold !important; }
     .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
     .main { background-color: #f8f9fa; }
+    
+    /* Estilo para os botões do topo ficarem profissionais */
+    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; height: 50px; font-size: 16px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -57,13 +63,36 @@ def carregar(arq):
         return df
     except: return pd.DataFrame()
 
-unidade = st.sidebar.selectbox("Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
-df_base = carregar("vendas_filial2.csv" if "Filial 2" in unidade else "vendas_filial5.csv")
+# --- NOVO CABEÇALHO CLEAN (LOGO E BOTÕES) ---
+if 'unidade_selecionada' not in st.session_state:
+    st.session_state.unidade_selecionada = "Filial 2"
+
+col_logo, col_vazia, col_f2, col_f5 = st.columns([2, 0.5, 1, 1])
+
+with col_logo:
+    # Puxa a sua logo direto do GitHub (Lembre de subir a imagem logo.png lá)
+    st.image("https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/logo.png", width=300)
+
+with col_f2:
+    st.write("") # Dá um pequeno espaço para alinhar com a logo
+    if st.button("📍 Filial 2 (Parnamirim)", type="primary" if st.session_state.unidade_selecionada == "Filial 2" else "secondary"):
+        st.session_state.unidade_selecionada = "Filial 2"
+        st.rerun()
+
+with col_f5:
+    st.write("")
+    if st.button("📍 Filial 5 (Planalto)", type="primary" if st.session_state.unidade_selecionada == "Filial 5" else "secondary"):
+        st.session_state.unidade_selecionada = "Filial 5"
+        st.rerun()
+
+# Define a unidade baseada no botão clicado
+unidade = st.session_state.unidade_selecionada
+df_base = carregar("vendas_filial2.csv" if unidade == "Filial 2" else "vendas_filial5.csv")
 df_avarias = carregar("avarias.csv")
 
-if not df_base.empty:
-    st.title(f"🍗 RotiFácil - {unidade}")
+st.divider() # Uma linha sutil separando o cabeçalho do conteúdo
 
+if not df_base.empty:
     # --- SELETOR DE DATAS ---
     hoje_dados = df_base['Data_Date'].max()
     datas_sel = st.date_input("📅 Selecione o Período de Análise:", value=(hoje_dados.replace(day=1), hoje_dados), max_value=hoje_dados)

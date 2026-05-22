@@ -50,6 +50,7 @@ st.markdown("""
         background-color: transparent !important; 
         border-radius: 8px !important; 
         border: 1px solid #e2e8f0 !important;
+        padding: 10px 24px !important;
     }
     button[aria-selected="true"] { 
         background-color: #e2e8f0 !important; /* Tom de cinza suave */

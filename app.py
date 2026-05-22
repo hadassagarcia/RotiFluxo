@@ -35,14 +35,32 @@ PRECIFICACAO_REAL = {
     "TAPIOCA QUEIJO KG": [19.54, 47.99],
 }
 
-# --- ESTILIZAÇÃO ---
+# --- ESTILIZAÇÃO CSS (CARTÕES E SOMBRAS) ---
 st.markdown("""
     <style>
+    /* Estilo para criar os cartões com bordas arredondadas e sombra suave */
+    [data-testid="stMetric"] {
+        background-color: #FFFFFF;
+        padding: 15px 20px;
+        border-radius: 12px;
+        box-shadow: 2px 4px 10px rgba(0, 0, 0, 0.08);
+        border: 1px solid #E8EEF3;
+    }
     [data-testid="stMetricValue"] { font-size: 32px !important; font-weight: bold; color: #1E3A8A; }
-    button[data-baseweb="tab"] p { font-size: 18px !important; font-weight: 600 !important; }
+    
+    /* Deixando as abas parecidas com botões arredondados */
+    button[data-baseweb="tab"] { 
+        background-color: #f1f5f9; 
+        border-radius: 8px 8px 0px 0px; 
+        border: 1px solid #e2e8f0; border-bottom: none;
+        margin-right: 4px;
+    }
+    button[data-baseweb="tab"] p { font-size: 16px !important; font-weight: 600 !important; }
+    button[aria-selected="true"] { background-color: #1E3A8A !important; color: white !important; }
+    
     label[data-testid="stWidgetLabel"] p { font-size: 18px !important; font-weight: bold !important; }
     .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
-    .main { background-color: #f8f9fa; }
+    .main { background-color: #fcfcfc; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -57,30 +75,44 @@ def carregar(arq):
         return df
     except: return pd.DataFrame()
 
-# Trazendo a barra lateral de volta
+# Mantemos a sua Barra Lateral Clássica!
 unidade = st.sidebar.selectbox("Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
 df_base = carregar("vendas_filial2.csv" if "Filial 2" in unidade else "vendas_filial5.csv")
 df_avarias = carregar("avarias.csv")
 
 if not df_base.empty:
-    # Título original
-    st.title(f"🍗 RotiFácil - {unidade}")
+    
+    # 1. Tira o título em texto e coloca a sua Logo + o nome da unidade embaixo
+    try:
+        st.image("https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/logo.png", width=250)
+    except:
+        pass # Se a logo der erro, não quebra a tela
+    st.markdown(f"### 📍 {unidade}")
+    st.write("") # Espaçozinho
 
-    # --- SELETOR DE DATAS ---
+    # --- SELETOR DE DATAS (Com o texto claro que você pediu) ---
     hoje_dados = df_base['Data_Date'].max()
-    # Nome do seletor de volta
     datas_sel = st.date_input("📅 Selecione o Período de Análise:", value=(hoje_dados.replace(day=1), hoje_dados), max_value=hoje_dados)
 
     if len(datas_sel) == 2:
         ini, fim = datas_sel
         df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
         
-        # --- STATUS DA META DINÂMICO ---
+        # --- CARTÕES DE PERFORMANCE (Com bordas e sombras) ---
         fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
         progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
-        st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
+        
+        # Colocando em colunas para os cartões ficarem lado a lado
+        col_fat, col_meta, col_vazio = st.columns([1, 1, 2])
+        
+        with col_fat:
+            st.metric("💰 Faturamento no Período", f"R$ {fat_periodo:,.2f}")
+            
+        with col_meta:
+            st.metric("🎯 Meta Mensal (R$ 50k)", f"{progresso*100:.1f}%")
+            
+        st.write("") # Espaço para a barra não grudar
         st.progress(progresso)
-        st.write(f"Total Vendido: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
 
         st.divider()
 

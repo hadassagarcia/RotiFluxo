@@ -50,7 +50,6 @@ st.markdown("""
         background-color: transparent !important; 
         border-radius: 8px !important; 
         border: 1px solid #e2e8f0 !important;
-        padding: 10px 24px !important;
     }
     button[aria-selected="true"] { 
         background-color: #e2e8f0 !important; /* Tom de cinza suave */
@@ -214,10 +213,42 @@ if not df_base.empty and len(datas_sel) == 2:
                     else: st.success(f"Fluxo normal até às {ult_h}h.")
 
     # --- ABA AVARIA ---
-    with aba_avaria:
-        st.subheader("🗑️ Radar de Avaria")
-        if not df_avarias.empty:
-            st.dataframe(df_avarias)
-        else: st.info("Sem avarias registradas.")
+        with aba_avaria:
+            st.subheader("🗑️ Controle e Radar de Avarias")
+            
+            # 1. ÁREA DE LANÇAMENTO (Dentro de uma sanfona para deixar o design clean)
+            with st.expander("➕ Lançar Nova Avaria", expanded=False):
+                data_avaria = st.date_input("Selecione a Data da Avaria:", value=datetime.today().date())
+                
+                # Cria a planilha vazia puxando os nomes direto da sua precificação
+                lista_produtos = list(PRECIFICACAO_REAL.keys())
+                df_lancamento = pd.DataFrame({
+                    "Produto": lista_produtos,
+                    "Qtd_KG": [0.0] * len(lista_produtos) # Inicia tudo zerado
+                })
+                
+                st.write("Digite a quantidade perdida (em KG) na coluna abaixo:")
+                # A mágica acontece aqui: uma tabela editável!
+                df_editado = st.data_editor(df_lancamento, hide_index=True, use_container_width=True)
+                
+                if st.button("💾 Gravar Avaria do Dia", type="primary"):
+                    # Filtra e pega APENAS os itens que você digitou algum número
+                    avarias_reais = df_editado[df_editado['Qtd_KG'] > 0].copy()
+                    
+                    if not avarias_reais.empty:
+                        avarias_reais['Data'] = data_avaria.strftime("%Y-%m-%d")
+                        st.success(f"✅ Pronto! Avaria de {len(avarias_reais)} produto(s) separada para gravação.")
+                        st.dataframe(avarias_reais, hide_index=True)
+                    else:
+                        st.warning("⚠️ Você não informou nenhuma quantidade. Preencha a tabela antes de gravar.")
+            
+            st.divider()
+            
+            # 2. ÁREA DE VISUALIZAÇÃO DO HISTÓRICO
+            st.write("### 📋 Histórico de Avarias")
+            if not df_avarias.empty:
+                st.dataframe(df_avarias, use_container_width=True)
+            else: 
+                st.info("Nenhuma avaria registrada no sistema ainda.")
 
 else: st.info("Sincronizando dados...")

@@ -216,29 +216,48 @@ if not df_base.empty and len(datas_sel) == 2:
         with aba_avaria:
             st.subheader("🗑️ Controle e Radar de Avarias")
             
-            # 1. ÁREA DE LANÇAMENTO (Dentro de uma sanfona para deixar o design clean)
+            # 1. ÁREA DE LANÇAMENTO
             with st.expander("➕ Lançar Nova Avaria", expanded=False):
                 data_avaria = st.date_input("Selecione a Data da Avaria:", value=datetime.today().date())
                 
-                # Cria a planilha vazia puxando os nomes direto da sua precificação
                 lista_produtos = list(PRECIFICACAO_REAL.keys())
                 df_lancamento = pd.DataFrame({
                     "Produto": lista_produtos,
-                    "Qtd_KG": [0.0] * len(lista_produtos) # Inicia tudo zerado
+                    "Qtd_KG": [0.0] * len(lista_produtos)
                 })
                 
                 st.write("Digite a quantidade perdida (em KG) na coluna abaixo:")
-                # A mágica acontece aqui: uma tabela editável!
                 df_editado = st.data_editor(df_lancamento, hide_index=True, use_container_width=True)
                 
                 if st.button("💾 Gravar Avaria do Dia", type="primary"):
-                    # Filtra e pega APENAS os itens que você digitou algum número
                     avarias_reais = df_editado[df_editado['Qtd_KG'] > 0].copy()
                     
                     if not avarias_reais.empty:
                         avarias_reais['Data'] = data_avaria.strftime("%Y-%m-%d")
-                        st.success(f"✅ Pronto! Avaria de {len(avarias_reais)} produto(s) separada para gravação.")
-                        st.dataframe(avarias_reais, hide_index=True)
+                        
+                        try:
+                            # Traz a ferramenta do GitHub e a senha do cofre do Streamlit
+                            from github import Github
+                            token = st.secrets["GITHUB_TOKEN_ROTI"]
+                            g = Github(token)
+                            repo = g.get_repo("hadassagarcia/RotiFluxo")
+                            
+                            # Puxa o arquivo atual
+                            file_contents = repo.get_contents("avarias.csv")
+                            
+                            # Junta o histórico antigo com o lançamento de agora
+                            df_novas_avarias = pd.concat([df_avarias, avarias_reais], ignore_index=True)
+                            novo_csv = df_novas_avarias.to_csv(index=False)
+                            
+                            # Salva a atualização no GitHub
+                            repo.update_file(file_contents.path, f"Avaria registrada em {data_avaria}", novo_csv, file_contents.sha)
+                            
+                            st.success(f"✅ Sucesso! Avaria de {len(avarias_reais)} produto(s) gravada definitivamente no sistema.")
+                            time.sleep(2) # Pausa rápida para você ler a mensagem
+                            st.rerun() # Recarrega a tela para atualizar a tabela de baixo
+                            
+                        except Exception as e:
+                            st.error(f"❌ Erro ao salvar no GitHub. Verifique se o token foi configurado certinho nos Secrets. Erro: {e}")
                     else:
                         st.warning("⚠️ Você não informou nenhuma quantidade. Preencha a tabela antes de gravar.")
             

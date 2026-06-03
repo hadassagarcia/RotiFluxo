@@ -238,7 +238,7 @@ if not df_base.empty and len(datas_sel) == 2:
                         try:
                             # Traz a ferramenta do GitHub e a senha do cofre do Streamlit
                             from github import Github
-                            token = st.secrets["GITHUB_TOKEN_ROTI"]
+                            token = st.secrets["acessos"]["senha"]
                             g = Github(token)
                             repo = g.get_repo("hadassagarcia/RotiFluxo")
                             

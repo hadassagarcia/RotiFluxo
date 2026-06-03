@@ -273,10 +273,74 @@ if not df_base.empty and len(datas_sel) == 2:
             
             st.divider()
             
-            # 2. ÁREA DE VISUALIZAÇÃO DO HISTÓRICO
-            st.write("### 📋 Histórico de Avarias")
+            # 2. DASHBOARD ESTRATÉGICO DE AVARIAS
+            st.write("### 📊 Análise Estratégica de Perdas no Período")
+            
             if not df_avarias.empty:
-                st.dataframe(df_avarias, use_container_width=True)
+                # Filtrando a avaria para obedecer o seletor de datas lá do topo
+                df_avarias_periodo = df_avarias[(df_avarias['Data_Date'] >= ini) & (df_avarias['Data_Date'] <= fim)].copy()
+                
+                if not df_avarias_periodo.empty:
+                    # Calculando o Custo da Avaria (Pegando o Preço de Custo, que é o item [0] da sua lista)
+                    df_avarias_periodo['Custo_Unit'] = df_avarias_periodo['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
+                    df_avarias_periodo['Custo_Total_R$'] = df_avarias_periodo['Qtd_KG'] * df_avarias_periodo['Custo_Unit']
+                    
+                    total_kg_perdido = df_avarias_periodo['Qtd_KG'].sum()
+                    total_rs_perdido = df_avarias_periodo['Custo_Total_R$'].sum()
+                    
+                    # Calcula a porcentagem de perda baseada no 'fat_periodo' (Total Vendido)
+                    perc_avaria = (total_rs_perdido / fat_periodo * 100) if fat_periodo > 0 else 0
+                    
+                    # --- INDICADORES CHAVE (KPIs) ---
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("🗑️ Total Físico Perdido", f"{total_kg_perdido:.2f} KG")
+                    col2.metric("💸 Dinheiro no Lixo (Custo)", fmt(total_rs_perdido))
+                    col3.metric("📉 % Avaria sobre Venda", f"{perc_avaria:.2f}%", help="O ideal no varejo é manter as perdas abaixo de 2%.")
+                    
+                    st.write("") # Espaçamento
+                    
+                    # --- CURVA ABC DE AVARIAS ---
+                    st.write("#### 🚨 Curva ABC de Desperdício (Foco de Ação)")
+                    
+                    # Agrupa os produtos para ver quem perdeu mais dinheiro
+                    df_abc_avaria = df_avarias_periodo.groupby('Produto').agg({'Qtd_KG': 'sum', 'Custo_Total_R$': 'sum'}).reset_index()
+                    df_abc_avaria = df_abc_avaria.sort_values(by='Custo_Total_R$', ascending=False)
+                    
+                    # Calcula a curva ABC e as classificações
+                    df_abc_avaria['% Acumulado'] = (df_abc_avaria['Custo_Total_R$'].cumsum() / df_abc_avaria['Custo_Total_R$'].sum()) * 100
+                    
+                    def classificar_abc(perc):
+                        if perc <= 80: return 'A (Crítico)'
+                        elif perc <= 95: return 'B (Atenção)'
+                        else: return 'C (Normal)'
+                        
+                    df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
+                    
+                    # Organizando a tabela de forma limpa para exibição
+                    df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG', 'Custo_Total_R$', '% Acumulado']]
+                    
+                    # Destaque visual: pinta a linha de vermelho fraco se for item 'Crítico'
+                    def pintar_fundo(row):
+                        if 'A' in row['Curva ABC']: return ['background-color: #fee2e2; color: #991b1b'] * len(row)
+                        return [''] * len(row)
+
+                    st.dataframe(
+                        df_abc_avaria.style.apply(pintar_fundo, axis=1).format({
+                            'Qtd_KG': '{:.2f} KG', 
+                            'Custo_Total_R$': fmt, 
+                            '% Acumulado': '{:.1f}%'
+                        }),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+                    
+                    # --- HISTÓRICO BRUTO ---
+                    with st.expander("Ver Histórico de Lançamentos Diários", expanded=False):
+                        # Mostra só as colunas que importam, formatando as datas
+                        st.dataframe(df_avarias_periodo[['Data', 'Produto', 'Qtd_KG']], use_container_width=True, hide_index=True)
+                        
+                else:
+                    st.success(f"🎉 Excelente! Nenhuma avaria registrada entre {ini.strftime('%d/%m')} e {fim.strftime('%d/%m')}.")
             else: 
                 st.info("Nenhuma avaria registrada no sistema ainda.")
 

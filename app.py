@@ -216,6 +216,13 @@ if not df_base.empty and len(datas_sel) == 2:
         with aba_avaria:
             st.subheader("🗑️ Controle e Radar de Avarias")
             
+            # --- DETETIVE ---
+            try:
+                st.warning(f"🔎 O Streamlit está lendo estas chaves no cofre: {list(st.secrets.keys())}")
+            except Exception as e:
+                st.error("O cofre está totalmente vazio ou inacessível.")
+            # ----------------
+            
             # 1. ÁREA DE LANÇAMENTO
             with st.expander("➕ Lançar Nova Avaria", expanded=False):
                 data_avaria = st.date_input("Selecione a Data da Avaria:", value=datetime.today().date())
@@ -238,7 +245,7 @@ if not df_base.empty and len(datas_sel) == 2:
                         try:
                             # Traz a ferramenta do GitHub e a senha do cofre do Streamlit
                             from github import Github
-                            token = st.secrets["acessos"]["senha"]
+                            token = st.secrets["token_github"]
                             g = Github(token)
                             repo = g.get_repo("hadassagarcia/RotiFluxo")
                             

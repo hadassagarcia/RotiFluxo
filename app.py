@@ -261,6 +261,7 @@ if not df_base.empty and len(datas_sel) == 2:
                             
                             st.success(f"✅ Sucesso! Avaria de {len(avarias_reais)} produto(s) gravada definitivamente no sistema.")
                             time.sleep(2) # Pausa rápida para você ler a mensagem
+                            st.cache_data.clear()
                             st.rerun() # Recarrega a tela para atualizar a tabela de baixo
                             
                         except Exception as e:

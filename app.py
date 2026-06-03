@@ -299,30 +299,7 @@ if not df_base.empty and len(datas_sel) == 2:
                     
                     st.write("") # Espaçamento
 
-                    st.write("") # Espaçamento
-                    st.divider()
-                    
-                    # --- GRÁFICO DE DIAS DA SEMANA ---
-                    st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")
-                    
-                    # Extrai o dia da semana da data de lançamento (0=Segunda, 6=Domingo)
-                    df_avarias_periodo['Dia_Semana'] = pd.to_datetime(df_avarias_periodo['Data']).dt.weekday
-                    
-                    mapa_dias = {
-                        0: 'Segunda', 1: 'Terça', 2: 'Quarta', 
-                        3: 'Quinta', 4: 'Sexta', 5: 'Sábado', 6: 'Domingo'
-                    }
-                    
-                    # Agrupa pelo número do dia para manter a ordem correta na tela (Seg a Dom)
-                    df_dias = df_avarias_periodo.groupby('Dia_Semana')['Custo_Total_R$'].sum().reset_index()
-                    df_dias['Dia'] = df_dias['Dia_Semana'].map(mapa_dias)
-                    df_dias = df_dias.sort_values('Dia_Semana').set_index('Dia')
-                    
-                    # Desenha o gráfico de barras na cor vermelha
-                    if not df_dias.empty:
-                        st.bar_chart(df_dias[['Custo_Total_R$']], color="#ef4444")
-                    
-                    st.divider()
+                
                     
                     # --- CURVA ABC DE AVARIAS ---
                     st.write("#### 🚨 Curva ABC de Desperdício (Foco de Ação)")
@@ -358,6 +335,31 @@ if not df_base.empty and len(datas_sel) == 2:
                         use_container_width=True,
                         hide_index=True
                     )
+
+                    st.write("") # Espaçamento
+                    st.divider()
+                    
+                    # --- GRÁFICO DE DIAS DA SEMANA ---
+                    st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")
+                    
+                    # Extrai o dia da semana da data de lançamento (0=Segunda, 6=Domingo)
+                    df_avarias_periodo['Dia_Semana'] = pd.to_datetime(df_avarias_periodo['Data']).dt.weekday
+                    
+                    mapa_dias = {
+                        0: 'Segunda', 1: 'Terça', 2: 'Quarta', 
+                        3: 'Quinta', 4: 'Sexta', 5: 'Sábado', 6: 'Domingo'
+                    }
+                    
+                    # Agrupa pelo número do dia para manter a ordem correta na tela (Seg a Dom)
+                    df_dias = df_avarias_periodo.groupby('Dia_Semana')['Custo_Total_R$'].sum().reset_index()
+                    df_dias['Dia'] = df_dias['Dia_Semana'].map(mapa_dias)
+                    df_dias = df_dias.sort_values('Dia_Semana').set_index('Dia')
+                    
+                    # Desenha o gráfico de barras na cor vermelha
+                    if not df_dias.empty:
+                        st.bar_chart(df_dias[['Custo_Total_R$']], color="#ef4444")
+                    
+                    st.divider()
                     
                     # --- HISTÓRICO BRUTO ---
                     with st.expander("Ver Histórico de Lançamentos Diários", expanded=False):

@@ -6,6 +6,44 @@ import time
 # 1. CONFIGURAÇÃO E DESIGN
 st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon="🍗")
 
+# ==========================================
+# 🔐 SISTEMA DE LOGIN DE ACESSO
+# ==========================================
+if 'logado' not in st.session_state:
+    st.session_state['logado'] = False
+
+# Se não estiver logado, mostra a tela de login e trava o resto
+if not st.session_state['logado']:
+    st.markdown("<br><br>", unsafe_allow_html=True) # Dá um espaço no topo
+    col1, col2, col3 = st.columns([1, 1, 1]) # Cria 3 colunas para o login ficar centralizado
+    
+    with col2:
+        st.markdown("### 🍗 Acesso Restrito - RotiFácil")
+        st.info("Digite suas credenciais para acessar o painel.")
+        
+        usuario = st.text_input("👤 Usuário")
+        senha = st.text_input("🔑 Senha", type="password") # O type="password" esconde a senha com bolinhas
+        
+        if st.button("Entrar", type="primary", use_container_width=True):
+            # Dicionário com os usuários (tudo em minúsculo para o sistema não ligar se digitarem com letra maiúscula ou não)
+            credenciais = {
+                "hadassa": "2112",
+                "thiago": "0064",
+                "mariana": "1288"
+            }
+            
+            # Limpa espaços em branco e joga para minúsculo para checar
+            user_formatado = usuario.strip().lower()
+            
+            if user_formatado in credenciais and credenciais[user_formatado] == senha:
+                st.session_state['logado'] = True
+                st.session_state['usuario_logado'] = usuario.strip().title() # Guarda o nome bonitinho
+                st.rerun() # Recarrega a página (agora vai passar direto pelo if e abrir o painel!)
+            else:
+                st.error("❌ Usuário ou senha incorretos.")
+                
+    st.stop() # 🛑 ESTE É O GUARDA-COSTAS! Ele impede que o painel abaixo carregue sem login.
+    
 # CONSTANTES DE GESTÃO
 META_FATURAMENTO = 50000.00
 IMPOSTO_PERCENTUAL = 0.2925  # 29,25% sobre o Preço de Venda

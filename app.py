@@ -301,14 +301,25 @@ if not df_base.empty and len(datas_sel) == 2:
 
                 
                     
-                    # --- CURVA ABC DE AVARIAS ---
-                    st.write("#### 🚨 Curva ABC de Desperdício (Foco de Ação)")
+                    # --- CURVA ABC DE AVARIAS (Foco de Ação) ---
+                    st.write("#### 🚨 Curva ABC de Desperdício e Proporção")
                     
-                    # Agrupa os produtos para ver quem perdeu mais dinheiro
+                    # 1. Agrupa os produtos na avaria
                     df_abc_avaria = df_avarias_periodo.groupby('Produto').agg({'Qtd_KG': 'sum', 'Custo_Total_R$': 'sum'}).reset_index()
+                    df_abc_avaria.rename(columns={'Qtd_KG': 'Qtd_KG_Avaria'}, inplace=True)
+                    
+                    # 2. Puxa o total VENDIDO em KG do mesmo período (da tabela principal df_filt)
+                    df_vendas_kg = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Qtd_KG'].sum().reset_index()
+                    df_vendas_kg.rename(columns={'Qtd_KG': 'Qtd_KG_Vendido'}, inplace=True)
+                    
+                    # 3. Cruza (Junta) a tabela de Avaria com a tabela de Vendas
+                    df_abc_avaria = pd.merge(df_abc_avaria, df_vendas_kg, on='Produto', how='left')
+                    df_abc_avaria['Qtd_KG_Vendido'] = df_abc_avaria['Qtd_KG_Vendido'].fillna(0) # Se jogou fora mas não vendeu nada, preenche com 0
+                    
+                    # 4. Ordena para mostrar quem deu mais prejuízo financeiro primeiro
                     df_abc_avaria = df_abc_avaria.sort_values(by='Custo_Total_R$', ascending=False)
                     
-                    # Calcula a curva ABC e as classificações
+                    # 5. Calcula a curva ABC e as classificações
                     df_abc_avaria['% Acumulado'] = (df_abc_avaria['Custo_Total_R$'].cumsum() / df_abc_avaria['Custo_Total_R$'].sum()) * 100
                     
                     def classificar_abc(perc):
@@ -318,26 +329,25 @@ if not df_base.empty and len(datas_sel) == 2:
                         
                     df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
                     
-                    # Organizando a tabela de forma limpa para exibição
-                    df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG', 'Custo_Total_R$', '% Acumulado']]
+                    # 6. Organizando a tabela com a nova coluna na ordem que você pediu
+                    df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG_Avaria', 'Qtd_KG_Vendido', 'Custo_Total_R$', '% Acumulado']]
                     
                     # Destaque visual: pinta a linha de vermelho fraco se for item 'Crítico'
                     def pintar_fundo(row):
                         if 'A' in row['Curva ABC']: return ['background-color: #fee2e2; color: #991b1b'] * len(row)
                         return [''] * len(row)
 
+                    # Exibe a tabela formatada
                     st.dataframe(
                         df_abc_avaria.style.apply(pintar_fundo, axis=1).format({
-                            'Qtd_KG': '{:.2f} KG', 
+                            'Qtd_KG_Avaria': '{:.2f} KG', 
+                            'Qtd_KG_Vendido': '{:.2f} KG', 
                             'Custo_Total_R$': fmt, 
                             '% Acumulado': '{:.1f}%'
                         }),
                         use_container_width=True,
                         hide_index=True
                     )
-
-                    st.write("") # Espaçamento
-                    st.divider()
                     
                     # --- GRÁFICO DE DIAS DA SEMANA ---
                     st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")

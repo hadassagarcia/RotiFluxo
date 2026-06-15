@@ -29,7 +29,8 @@ if not st.session_state['logado']:
             credenciais = {
                 "hadassa": "2112",
                 "thiago": "0064",
-                "mariana": "1288"
+                "mariana": "1288",
+                "geyzzon": "0064"
             }
             
             # Limpa espaços em branco e joga para minúsculo para checar

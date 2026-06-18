@@ -145,13 +145,19 @@ with col_data:
 
 st.divider() # Linha separadora elegante
 
-# Carrega os dados reais baseados na filial escolhida
-df_base = carregar("vendas_filial2.csv" if "Filial 2" in unidade else "vendas_filial5.csv")
-df_avarias = carregar("avarias.csv")
+st.divider() # Linha separadora elegante
 
-if not df_base.empty and len(datas_sel) == 2:
-    ini, fim = datas_sel
-    df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
+# Define os arquivos exatos dependendo da filial escolhida lá no topo
+if "Filial 2" in unidade:
+    arquivo_vendas = "vendas_filial2.csv"
+    arquivo_avarias = "avarias_filial2.csv"
+else:
+    arquivo_vendas = "vendas_filial5.csv"
+    arquivo_avarias = "avarias_filial5.csv"
+
+# Carrega os dados reais baseados na filial escolhida
+df_base = carregar(arquivo_vendas)
+df_avarias = carregar(arquivo_avarias)
     
     # --- STATUS DA META DINÂMICO (NO PADRÃO ANTIGO) ---
     fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
@@ -292,12 +298,14 @@ if not df_base.empty and len(datas_sel) == 2:
                             g = Github(token)
                             repo = g.get_repo("hadassagarcia/RotiFluxo")
                             
-                            # Puxa o arquivo atual
-                            file_contents = repo.get_contents("avarias.csv")
+                            import io # Ferramenta necessária para ler ao vivo
                             
-                            # Junta o histórico antigo com o lançamento de agora
-                            df_novas_avarias = pd.concat([df_avarias, avarias_reais], ignore_index=True)
-                            novo_csv = df_novas_avarias.to_csv(index=False)
+                            # Puxa o arquivo atual VIVO usando a variável da filial certa
+                            file_contents = repo.get_contents(arquivo_avarias)
+                            df_vivo = pd.read_csv(io.StringIO(file_contents.decoded_content.decode('utf-8')))
+                            
+                            # Junta o histórico VIVO com o lançamento de agora
+                            df_novas_avarias = pd.concat([df_vivo, avarias_reais], ignore_index=True)
                             
                             # Salva a atualização no GitHub
                             repo.update_file(file_contents.path, f"Avaria registrada em {data_avaria}", novo_csv, file_contents.sha)

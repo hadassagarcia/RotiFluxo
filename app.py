@@ -121,6 +121,7 @@ def carregar(arq):
         # O dedo-duro ativado:
         st.error(f"🚨 Não consegui ler a planilha {arq}. Erro: {e}")
         return pd.DataFrame()
+
 # ==========================================
 # CABEÇALHO: LOGO (ESQUERDA) | FILTROS (DIREITA)
 # ==========================================
@@ -132,6 +133,12 @@ with col_logo:
         st.image("https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/logo.png", width=250)
     except:
         st.markdown("### 🍗 RotiFácil")
+        
+    # Mostra quem está logado e o botão de sair
+    st.caption(f"👤 Operador(a): **{st.session_state.get('usuario_logado', '')}**")
+    if st.button("Sair (Logout)", size="small"):
+        st.session_state['logado'] = False
+        st.rerun()
 
 # Pegar uma data base para o calendário carregar corretamente
 df_temp = carregar("vendas_filial2.csv")
@@ -147,8 +154,6 @@ with col_data:
 
 st.divider() # Linha separadora elegante
 
-st.divider() # Linha separadora elegante
-
 # Define os arquivos exatos dependendo da filial escolhida lá no topo
 if "Filial 2" in unidade:
     arquivo_vendas = "vendas_filial2.csv"
@@ -161,11 +166,12 @@ else:
 df_base = carregar(arquivo_vendas)
 df_avarias = carregar(arquivo_avarias)
 
-if not df_base.empty and len(datas_sel) == 2: 
-    ini, fim = datas_sel                      
-    df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy() 
+# --- INÍCIO DO CÓDIGO CORRIGIDO (O BLOCO QUE HAVIA SUMIDO) ---
+if not df_base.empty and len(datas_sel) == 2:
+    ini, fim = datas_sel
+    df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
     
-    # --- STATUS DA META DINÂMICO (NO PADRÃO ANTIGO) ---
+    # --- STATUS DA META DINÂMICO ---
     fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
     progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
     
@@ -268,189 +274,175 @@ if not df_base.empty and len(datas_sel) == 2:
                     else: st.success(f"Fluxo normal até às {ult_h}h.")
 
     # --- ABA AVARIA ---
-        with aba_avaria:
-            st.subheader("🗑️ Controle e Radar de Avarias")
+    with aba_avaria:
+        st.subheader("🗑️ Controle e Radar de Avarias")
+        
+        # --- DETETIVE ---
+        try:
+            st.warning(f"🔎 O Streamlit está lendo estas chaves no cofre: {list(st.secrets.keys())}")
+        except Exception as e:
+            st.error("O cofre está totalmente vazio ou inacessível.")
+        # ----------------
+        
+        # 1. ÁREA DE LANÇAMENTO
+        with st.expander("➕ Lançar Nova Avaria", expanded=False):
+            data_avaria = st.date_input("Selecione a Data da Avaria:", value=datetime.today().date())
             
-            # --- DETETIVE ---
-            try:
-                st.warning(f"🔎 O Streamlit está lendo estas chaves no cofre: {list(st.secrets.keys())}")
-            except Exception as e:
-                st.error("O cofre está totalmente vazio ou inacessível.")
-            # ----------------
+            lista_produtos = list(PRECIFICACAO_REAL.keys())
+            df_lancamento = pd.DataFrame({
+                "Produto": lista_produtos,
+                "Qtd_KG": [0.0] * len(lista_produtos)
+            })
             
-            # 1. ÁREA DE LANÇAMENTO
-            with st.expander("➕ Lançar Nova Avaria", expanded=False):
-                data_avaria = st.date_input("Selecione a Data da Avaria:", value=datetime.today().date())
+            st.write("Digite a quantidade perdida (em KG) na coluna abaixo:")
+            df_editado = st.data_editor(df_lancamento, hide_index=True, use_container_width=True)
+            
+            if st.button("💾 Gravar Avaria do Dia", type="primary"):
+                avarias_reais = df_editado[df_editado['Qtd_KG'] > 0].copy()
                 
-                lista_produtos = list(PRECIFICACAO_REAL.keys())
-                df_lancamento = pd.DataFrame({
-                    "Produto": lista_produtos,
-                    "Qtd_KG": [0.0] * len(lista_produtos)
-                })
-                
-                st.write("Digite a quantidade perdida (em KG) na coluna abaixo:")
-                df_editado = st.data_editor(df_lancamento, hide_index=True, use_container_width=True)
-                
-                if st.button("💾 Gravar Avaria do Dia", type="primary"):
-                    avarias_reais = df_editado[df_editado['Qtd_KG'] > 0].copy()
+                if not avarias_reais.empty:
+                    avarias_reais['Data'] = data_avaria.strftime("%Y-%m-%d")
                     
-                    if not avarias_reais.empty:
-                        avarias_reais['Data'] = data_avaria.strftime("%Y-%m-%d")
+                    try:
+                        # Traz a ferramenta do GitHub e a senha do cofre do Streamlit
+                        from github import Github
+                        token = st.secrets["token_github"]
+                        g = Github(token)
+                        repo = g.get_repo("hadassagarcia/RotiFluxo")
                         
-                        try:
-                            # Traz a ferramenta do GitHub e a senha do cofre do Streamlit
-                            from github import Github
-                            token = st.secrets["token_github"]
-                            g = Github(token)
-                            repo = g.get_repo("hadassagarcia/RotiFluxo")
-                            
-                            import io # Ferramenta necessária para ler ao vivo
-                            
-                            # Puxa o arquivo atual VIVO usando a variável da filial certa
-                            file_contents = repo.get_contents(arquivo_avarias)
-                            df_vivo = pd.read_csv(io.StringIO(file_contents.decoded_content.decode('utf-8')))
-                            
-                            # Junta o histórico VIVO com o lançamento de agora
-                            df_novas_avarias = pd.concat([df_vivo, avarias_reais], ignore_index=True)
-                            
-                            # Salva a atualização no GitHub
-                            repo.update_file(file_contents.path, f"Avaria registrada em {data_avaria}", novo_csv, file_contents.sha)
-                            
-                            st.success(f"✅ Sucesso! Avaria de {len(avarias_reais)} produto(s) gravada definitivamente no sistema.")
-                            time.sleep(2) # Pausa rápida para você ler a mensagem
-                            st.cache_data.clear()
-                            st.rerun() # Recarrega a tela para atualizar a tabela de baixo
-                            
-                        except Exception as e:
-                            st.error(f"❌ Erro ao salvar no GitHub. Verifique se o token foi configurado certinho nos Secrets. Erro: {e}")
-                    else:
-                        st.warning("⚠️ Você não informou nenhuma quantidade. Preencha a tabela antes de gravar.")
-            
-            st.divider()
-            
-            # 2. DASHBOARD ESTRATÉGICO DE AVARIAS
-            st.write("### 📊 Análise Estratégica de Perdas no Período")
-            
-            # --- GARANTINDO O FILTRO DE DATAS ---
-            if not df_avarias.empty and 'ini' in locals() and 'fim' in locals():
-                # Garante que a coluna Data da avaria é lida como data real para o filtro funcionar
-                df_avarias['Data'] = pd.to_datetime(df_avarias['Data']).dt.date
-                
-                # Filtra o período escolhido no topo
-                df_avarias_periodo = df_avarias[(df_avarias['Data'] >= ini) & (df_avarias['Data'] <= fim)].copy()
-                
-                if not df_avarias_periodo.empty:
-                    # Calculando o Custo da Avaria (Pegando o Preço de Custo, que é o item [0] da sua lista)
-                    df_avarias_periodo['Custo_Unit'] = df_avarias_periodo['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
-                    df_avarias_periodo['Custo_Total_R$'] = df_avarias_periodo['Qtd_KG'] * df_avarias_periodo['Custo_Unit']
-                    
-                    # ... (o resto do seu código da avaria continua exatamente igual daqui para baixo)
-            
-            st.write("### 📊 Análise Estratégica de Perdas no Período")
-            
-            if not df_avarias.empty:
-                # Filtrando a avaria para obedecer o seletor de datas lá do topo
-                df_avarias_periodo = df_avarias[(df_avarias['Data_Date'] >= ini) & (df_avarias['Data_Date'] <= fim)].copy()
-                
-                if not df_avarias_periodo.empty:
-                    # Calculando o Custo da Avaria (Pegando o Preço de Custo, que é o item [0] da sua lista)
-                    df_avarias_periodo['Custo_Unit'] = df_avarias_periodo['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
-                    df_avarias_periodo['Custo_Total_R$'] = df_avarias_periodo['Qtd_KG'] * df_avarias_periodo['Custo_Unit']
-                    
-                    total_kg_perdido = df_avarias_periodo['Qtd_KG'].sum()
-                    total_rs_perdido = df_avarias_periodo['Custo_Total_R$'].sum()
-                    
-                    # Calcula a porcentagem de perda baseada no 'fat_periodo' (Total Vendido)
-                    perc_avaria = (total_rs_perdido / fat_periodo * 100) if fat_periodo > 0 else 0
-                    
-                    # --- INDICADORES CHAVE (KPIs) ---
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("🗑️ Total Físico Perdido", f"{total_kg_perdido:.2f} KG")
-                    col2.metric("💸 Dinheiro no Lixo (Custo)", fmt(total_rs_perdido))
-                    col3.metric("📉 % Avaria sobre Venda", f"{perc_avaria:.2f}%", help="O ideal no varejo é manter as perdas abaixo de 2%.")
-                    
-                    st.write("") # Espaçamento
-
-                
-                    
-                    # --- CURVA ABC DE AVARIAS (Foco de Ação) ---
-                    st.write("#### 🚨 Curva ABC de Desperdício e Proporção")
-                    
-                    # 1. Agrupa os produtos na avaria
-                    df_abc_avaria = df_avarias_periodo.groupby('Produto').agg({'Qtd_KG': 'sum', 'Custo_Total_R$': 'sum'}).reset_index()
-                    df_abc_avaria.rename(columns={'Qtd_KG': 'Qtd_KG_Avaria'}, inplace=True)
-                    
-                    # 2. Puxa o total VENDIDO em KG do mesmo período (da tabela principal df_filt)
-                    df_vendas_kg = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Qtd_KG'].sum().reset_index()
-                    df_vendas_kg.rename(columns={'Qtd_KG': 'Qtd_KG_Vendido'}, inplace=True)
-                    
-                    # 3. Cruza (Junta) a tabela de Avaria com a tabela de Vendas
-                    df_abc_avaria = pd.merge(df_abc_avaria, df_vendas_kg, on='Produto', how='left')
-                    df_abc_avaria['Qtd_KG_Vendido'] = df_abc_avaria['Qtd_KG_Vendido'].fillna(0) # Se jogou fora mas não vendeu nada, preenche com 0
-                    
-                    # 4. Ordena para mostrar quem deu mais prejuízo financeiro primeiro
-                    df_abc_avaria = df_abc_avaria.sort_values(by='Custo_Total_R$', ascending=False)
-                    
-                    # 5. Calcula a curva ABC e as classificações
-                    df_abc_avaria['% Acumulado'] = (df_abc_avaria['Custo_Total_R$'].cumsum() / df_abc_avaria['Custo_Total_R$'].sum()) * 100
-                    
-                    def classificar_abc(perc):
-                        if perc <= 80: return 'A (Crítico)'
-                        elif perc <= 95: return 'B (Atenção)'
-                        else: return 'C (Normal)'
+                        import io # Ferramenta necessária para ler ao vivo
                         
-                    df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
-                    
-                    # 6. Organizando a tabela com a nova coluna na ordem que você pediu
-                    df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG_Avaria', 'Qtd_KG_Vendido', 'Custo_Total_R$', '% Acumulado']]
-                    
-                    # Destaque visual: pinta a linha de vermelho fraco se for item 'Crítico'
-                    def pintar_fundo(row):
-                        if 'A' in row['Curva ABC']: return ['background-color: #fee2e2; color: #991b1b'] * len(row)
-                        return [''] * len(row)
-
-                    # Exibe a tabela formatada
-                    st.dataframe(
-                        df_abc_avaria.style.apply(pintar_fundo, axis=1).format({
-                            'Qtd_KG_Avaria': '{:.2f} KG', 
-                            'Qtd_KG_Vendido': '{:.2f} KG', 
-                            'Custo_Total_R$': fmt, 
-                            '% Acumulado': '{:.1f}%'
-                        }),
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                    
-                    # --- GRÁFICO DE DIAS DA SEMANA ---
-                    st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")
-                    
-                    # Extrai o dia da semana da data de lançamento (0=Segunda, 6=Domingo)
-                    df_avarias_periodo['Dia_Semana'] = pd.to_datetime(df_avarias_periodo['Data']).dt.weekday
-                    
-                    mapa_dias = {
-                        0: 'Segunda', 1: 'Terça', 2: 'Quarta', 
-                        3: 'Quinta', 4: 'Sexta', 5: 'Sábado', 6: 'Domingo'
-                    }
-                    
-                    # Agrupa pelo número do dia para manter a ordem correta na tela (Seg a Dom)
-                    df_dias = df_avarias_periodo.groupby('Dia_Semana')['Custo_Total_R$'].sum().reset_index()
-                    df_dias['Dia'] = df_dias['Dia_Semana'].map(mapa_dias)
-                    df_dias = df_dias.sort_values('Dia_Semana').set_index('Dia')
-                    
-                    # Desenha o gráfico de barras na cor vermelha
-                    if not df_dias.empty:
-                        st.bar_chart(df_dias[['Custo_Total_R$']], color="#ef4444")
-                    
-                    st.divider()
-                    
-                    # --- HISTÓRICO BRUTO ---
-                    with st.expander("Ver Histórico de Lançamentos Diários", expanded=False):
-                        # Mostra só as colunas que importam, formatando as datas
-                        st.dataframe(df_avarias_periodo[['Data', 'Produto', 'Qtd_KG']], use_container_width=True, hide_index=True)
+                        # Puxa o arquivo atual VIVO usando a variável da filial certa
+                        file_contents = repo.get_contents(arquivo_avarias)
+                        df_vivo = pd.read_csv(io.StringIO(file_contents.decoded_content.decode('utf-8')))
                         
+                        # Junta o histórico VIVO com o lançamento de agora
+                        df_novas_avarias = pd.concat([df_vivo, avarias_reais], ignore_index=True)
+                        novo_csv = df_novas_avarias.to_csv(index=False)
+                        
+                        # Salva a atualização no GitHub
+                        repo.update_file(file_contents.path, f"Avaria registrada em {data_avaria}", novo_csv, file_contents.sha)
+                        
+                        st.success(f"✅ Sucesso! Avaria de {len(avarias_reais)} produto(s) gravada definitivamente no sistema.")
+                        time.sleep(2) # Pausa rápida para você ler a mensagem
+                        st.cache_data.clear()
+                        st.rerun() # Recarrega a tela para atualizar a tabela de baixo
+                        
+                    except Exception as e:
+                        st.error(f"❌ Erro ao salvar no GitHub. Verifique se o token foi configurado certinho nos Secrets. Erro: {e}")
                 else:
-                    st.success(f"🎉 Excelente! Nenhuma avaria registrada entre {ini.strftime('%d/%m')} e {fim.strftime('%d/%m')}.")
-            else: 
-                st.info("Nenhuma avaria registrada no sistema ainda.")
+                    st.warning("⚠️ Você não informou nenhuma quantidade. Preencha a tabela antes de gravar.")
+        
+        st.divider()
+        
+        # 2. DASHBOARD ESTRATÉGICO DE AVARIAS
+        st.write("### 📊 Análise Estratégica de Perdas no Período")
+        
+        if not df_avarias.empty and 'ini' in locals() and 'fim' in locals():
+            # Garante formato de data
+            df_avarias['Data'] = pd.to_datetime(df_avarias['Data']).dt.date
+            
+            # Filtrando a avaria para obedecer o seletor de datas lá do topo
+            df_avarias_periodo = df_avarias[(df_avarias['Data'] >= ini) & (df_avarias['Data'] <= fim)].copy()
+            
+            if not df_avarias_periodo.empty:
+                # Calculando o Custo da Avaria
+                df_avarias_periodo['Custo_Unit'] = df_avarias_periodo['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
+                df_avarias_periodo['Custo_Total_R$'] = df_avarias_periodo['Qtd_KG'] * df_avarias_periodo['Custo_Unit']
+                
+                total_kg_perdido = df_avarias_periodo['Qtd_KG'].sum()
+                total_rs_perdido = df_avarias_periodo['Custo_Total_R$'].sum()
+                
+                # Calcula a porcentagem de perda baseada no 'fat_periodo' (Total Vendido)
+                perc_avaria = (total_rs_perdido / fat_periodo * 100) if fat_periodo > 0 else 0
+                
+                # --- INDICADORES CHAVE (KPIs) ---
+                col1, col2, col3 = st.columns(3)
+                col1.metric("🗑️ Total Físico Perdido", f"{total_kg_perdido:.2f} KG")
+                col2.metric("💸 Dinheiro no Lixo (Custo)", fmt(total_rs_perdido))
+                col3.metric("📉 % Avaria sobre Venda", f"{perc_avaria:.2f}%", help="O ideal no varejo é manter as perdas abaixo de 2%.")
+                
+                st.write("") # Espaçamento
+                
+                # --- CURVA ABC DE AVARIAS (Foco de Ação) ---
+                st.write("#### 🚨 Curva ABC de Desperdício e Proporção")
+                
+                # 1. Agrupa os produtos na avaria
+                df_abc_avaria = df_avarias_periodo.groupby('Produto').agg({'Qtd_KG': 'sum', 'Custo_Total_R$': 'sum'}).reset_index()
+                df_abc_avaria.rename(columns={'Qtd_KG': 'Qtd_KG_Avaria'}, inplace=True)
+                
+                # 2. Puxa o total VENDIDO em KG do mesmo período (da tabela principal df_filt)
+                df_vendas_kg = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Qtd_KG'].sum().reset_index()
+                df_vendas_kg.rename(columns={'Qtd_KG': 'Qtd_KG_Vendido'}, inplace=True)
+                
+                # 3. Cruza (Junta) a tabela de Avaria com a tabela de Vendas
+                df_abc_avaria = pd.merge(df_abc_avaria, df_vendas_kg, on='Produto', how='left')
+                df_abc_avaria['Qtd_KG_Vendido'] = df_abc_avaria['Qtd_KG_Vendido'].fillna(0) # Se jogou fora mas não vendeu nada, preenche com 0
+                
+                # 4. Ordena para mostrar quem deu mais prejuízo financeiro primeiro
+                df_abc_avaria = df_abc_avaria.sort_values(by='Custo_Total_R$', ascending=False)
+                
+                # 5. Calcula a curva ABC e as classificações
+                df_abc_avaria['% Acumulado'] = (df_abc_avaria['Custo_Total_R$'].cumsum() / df_abc_avaria['Custo_Total_R$'].sum()) * 100
+                
+                def classificar_abc(perc):
+                    if perc <= 80: return 'A (Crítico)'
+                    elif perc <= 95: return 'B (Atenção)'
+                    else: return 'C (Normal)'
+                    
+                df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
+                
+                # 6. Organizando a tabela com a nova coluna na ordem que você pediu
+                df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG_Avaria', 'Qtd_KG_Vendido', 'Custo_Total_R$', '% Acumulado']]
+                
+                # Destaque visual: pinta a linha de vermelho fraco se for item 'Crítico'
+                def pintar_fundo(row):
+                    if 'A' in row['Curva ABC']: return ['background-color: #fee2e2; color: #991b1b'] * len(row)
+                    return [''] * len(row)
 
-else: st.info("Sincronizando dados...")
+                # Exibe a tabela formatada
+                st.dataframe(
+                    df_abc_avaria.style.apply(pintar_fundo, axis=1).format({
+                        'Qtd_KG_Avaria': '{:.2f} KG', 
+                        'Qtd_KG_Vendido': '{:.2f} KG', 
+                        'Custo_Total_R$': fmt, 
+                        '% Acumulado': '{:.1f}%'
+                    }),
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # --- GRÁFICO DE DIAS DA SEMANA ---
+                st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")
+                
+                # Extrai o dia da semana da data de lançamento (0=Segunda, 6=Domingo)
+                # Converter para datetime caso ainda não seja
+                df_avarias_periodo['Dia_Semana'] = pd.to_datetime(df_avarias_periodo['Data']).dt.weekday
+                
+                mapa_dias = {
+                    0: 'Segunda', 1: 'Terça', 2: 'Quarta', 
+                    3: 'Quinta', 4: 'Sexta', 5: 'Sábado', 6: 'Domingo'
+                }
+                
+                # Agrupa pelo número do dia para manter a ordem correta na tela (Seg a Dom)
+                df_dias = df_avarias_periodo.groupby('Dia_Semana')['Custo_Total_R$'].sum().reset_index()
+                df_dias['Dia'] = df_dias['Dia_Semana'].map(mapa_dias)
+                df_dias = df_dias.sort_values('Dia_Semana').set_index('Dia')
+                
+                # Desenha o gráfico de barras na cor vermelha
+                if not df_dias.empty:
+                    st.bar_chart(df_dias[['Custo_Total_R$']], color="#ef4444")
+                
+                st.divider()
+                
+                # --- HISTÓRICO BRUTO ---
+                with st.expander("Ver Histórico de Lançamentos Diários", expanded=False):
+                    # Mostra só as colunas que importam, formatando as datas
+                    st.dataframe(df_avarias_periodo[['Data', 'Produto', 'Qtd_KG']], use_container_width=True, hide_index=True)
+                    
+            else:
+                st.success(f"🎉 Excelente! Nenhuma avaria registrada entre {ini.strftime('%d/%m')} e {fim.strftime('%d/%m')}.")
+        else: 
+            st.info("Nenhuma avaria registrada no sistema ainda.")
+
+else: st.info("Sincronizando dados ou nenhuma venda no período...")

@@ -24,7 +24,7 @@ if not st.session_state['logado']:
         usuario = st.text_input("👤 Usuário")
         senha = st.text_input("🔑 Senha", type="password") # O type="password" esconde a senha com bolinhas
         
-        if st.button("Entrar", type="primary", use_container_width=True):
+        ("Entrar", type="primary", use_container_width=True):
             # Dicionário com os usuários (tudo em minúsculo para o sistema não ligar se digitarem com letra maiúscula ou não)
             credenciais = {
                 "hadassa": "2112",

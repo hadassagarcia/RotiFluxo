@@ -164,7 +164,20 @@ else:
 
 # Carrega os dados reais baseados na filial escolhida
 df_base = carregar(arquivo_vendas)
-df_avarias = carregar(arquivo_avarias)
+# Carrega os dados reais baseados na filial escolhida
+df_base = carregar(arquivo_vendas)
+
+# 🚀 LÊ AVARIAS "AO VIVO" (Bypassa o Cache Lento do GitHub)
+try:
+    from github import Github
+    import io
+    g = Github(st.secrets["token_github"])
+    repo = g.get_repo("hadassagarcia/RotiFluxo")
+    file_contents = repo.get_contents(arquivo_avarias)
+    df_avarias = pd.read_csv(io.StringIO(file_contents.decoded_content.decode('utf-8')))
+except Exception as e:
+    st.error(f"Erro ao ler avarias ao vivo: {e}")
+    df_avarias = pd.DataFrame()df_avarias = carregar(arquivo_avarias)
 
 # --- INÍCIO DO CÓDIGO CORRIGIDO (O BLOCO QUE HAVIA SUMIDO) ---
 if not df_base.empty and len(datas_sel) == 2:

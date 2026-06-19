@@ -338,7 +338,7 @@ if not df_base.empty and len(datas_sel) == 2:
         # 2. DASHBOARD ESTRATÉGICO DE AVARIAS
         st.write("### 📊 Análise Estratégica de Perdas no Período")
         
-        if not df_avarias.empty and 'ini' in locals() and 'fim' in locals():
+        if not df_avarias.empty:
             # Garante formato de data
             df_avarias['Data'] = pd.to_datetime(df_avarias['Data']).dt.date
             

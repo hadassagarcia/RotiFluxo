@@ -160,6 +160,10 @@ else:
 # Carrega os dados reais baseados na filial escolhida
 df_base = carregar(arquivo_vendas)
 df_avarias = carregar(arquivo_avarias)
+
+if not df_base.empty and len(datas_sel) == 2: 
+    ini, fim = datas_sel                      
+    df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy() 
     
     # --- STATUS DA META DINÂMICO (NO PADRÃO ANTIGO) ---
     fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()

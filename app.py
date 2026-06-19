@@ -331,6 +331,23 @@ if not df_base.empty and len(datas_sel) == 2:
             # 2. DASHBOARD ESTRATÉGICO DE AVARIAS
             st.write("### 📊 Análise Estratégica de Perdas no Período")
             
+            # --- GARANTINDO O FILTRO DE DATAS ---
+            if not df_avarias.empty and 'ini' in locals() and 'fim' in locals():
+                # Garante que a coluna Data da avaria é lida como data real para o filtro funcionar
+                df_avarias['Data'] = pd.to_datetime(df_avarias['Data']).dt.date
+                
+                # Filtra o período escolhido no topo
+                df_avarias_periodo = df_avarias[(df_avarias['Data'] >= ini) & (df_avarias['Data'] <= fim)].copy()
+                
+                if not df_avarias_periodo.empty:
+                    # Calculando o Custo da Avaria (Pegando o Preço de Custo, que é o item [0] da sua lista)
+                    df_avarias_periodo['Custo_Unit'] = df_avarias_periodo['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
+                    df_avarias_periodo['Custo_Total_R$'] = df_avarias_periodo['Qtd_KG'] * df_avarias_periodo['Custo_Unit']
+                    
+                    # ... (o resto do seu código da avaria continua exatamente igual daqui para baixo)
+            
+            st.write("### 📊 Análise Estratégica de Perdas no Período")
+            
             if not df_avarias.empty:
                 # Filtrando a avaria para obedecer o seletor de datas lá do topo
                 df_avarias_periodo = df_avarias[(df_avarias['Data_Date'] >= ini) & (df_avarias['Data_Date'] <= fim)].copy()

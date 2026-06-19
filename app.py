@@ -24,7 +24,7 @@ if not st.session_state['logado']:
         usuario = st.text_input("👤 Usuário")
         senha = st.text_input("🔑 Senha", type="password") # O type="password" esconde a senha com bolinhas
         
-        ("Entrar", type="primary", use_container_width=True):
+        if st.button("Entrar", type="primary", use_container_width=True):
             # Dicionário com os usuários (tudo em minúsculo para o sistema não ligar se digitarem com letra maiúscula ou não)
             credenciais = {
                 "hadassa": "2112",
@@ -136,7 +136,7 @@ with col_logo:
         
     # Mostra quem está logado e o botão de sair
     st.caption(f"👤 Operador(a): **{st.session_state.get('usuario_logado', '')}**")
-    if st.button("Sair (Logout)", size="small"):
+    if st.button("Sair (Logout)"):
         st.session_state['logado'] = False
         st.rerun()
 
@@ -164,8 +164,6 @@ else:
 
 # Carrega os dados reais baseados na filial escolhida
 df_base = carregar(arquivo_vendas)
-# Carrega os dados reais baseados na filial escolhida
-df_base = carregar(arquivo_vendas)
 
 # 🚀 LÊ AVARIAS "AO VIVO" (Bypassa o Cache Lento do GitHub)
 try:
@@ -178,9 +176,8 @@ try:
 except Exception as e:
     st.error(f"Erro ao ler avarias ao vivo: {e}")
     df_avarias = pd.DataFrame()
-    df_avarias = carregar(arquivo_avarias)
 
-# --- INÍCIO DO CÓDIGO CORRIGIDO (O BLOCO QUE HAVIA SUMIDO) ---
+# --- INÍCIO DO CÓDIGO CORRIGIDO ---
 if not df_base.empty and len(datas_sel) == 2:
     ini, fim = datas_sel
     df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
@@ -401,62 +398,4 @@ if not df_base.empty and len(datas_sel) == 2:
                 
                 def classificar_abc(perc):
                     if perc <= 80: return 'A (Crítico)'
-                    elif perc <= 95: return 'B (Atenção)'
-                    else: return 'C (Normal)'
-                    
-                df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
-                
-                # 6. Organizando a tabela com a nova coluna na ordem que você pediu
-                df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG_Avaria', 'Qtd_KG_Vendido', 'Custo_Total_R$', '% Acumulado']]
-                
-                # Destaque visual: pinta a linha de vermelho fraco se for item 'Crítico'
-                def pintar_fundo(row):
-                    if 'A' in row['Curva ABC']: return ['background-color: #fee2e2; color: #991b1b'] * len(row)
-                    return [''] * len(row)
-
-                # Exibe a tabela formatada
-                st.dataframe(
-                    df_abc_avaria.style.apply(pintar_fundo, axis=1).format({
-                        'Qtd_KG_Avaria': '{:.2f} KG', 
-                        'Qtd_KG_Vendido': '{:.2f} KG', 
-                        'Custo_Total_R$': fmt, 
-                        '% Acumulado': '{:.1f}%'
-                    }),
-                    use_container_width=True,
-                    hide_index=True
-                )
-                
-                # --- GRÁFICO DE DIAS DA SEMANA ---
-                st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")
-                
-                # Extrai o dia da semana da data de lançamento (0=Segunda, 6=Domingo)
-                # Converter para datetime caso ainda não seja
-                df_avarias_periodo['Dia_Semana'] = pd.to_datetime(df_avarias_periodo['Data']).dt.weekday
-                
-                mapa_dias = {
-                    0: 'Segunda', 1: 'Terça', 2: 'Quarta', 
-                    3: 'Quinta', 4: 'Sexta', 5: 'Sábado', 6: 'Domingo'
-                }
-                
-                # Agrupa pelo número do dia para manter a ordem correta na tela (Seg a Dom)
-                df_dias = df_avarias_periodo.groupby('Dia_Semana')['Custo_Total_R$'].sum().reset_index()
-                df_dias['Dia'] = df_dias['Dia_Semana'].map(mapa_dias)
-                df_dias = df_dias.sort_values('Dia_Semana').set_index('Dia')
-                
-                # Desenha o gráfico de barras na cor vermelha
-                if not df_dias.empty:
-                    st.bar_chart(df_dias[['Custo_Total_R$']], color="#ef4444")
-                
-                st.divider()
-                
-                # --- HISTÓRICO BRUTO ---
-                with st.expander("Ver Histórico de Lançamentos Diários", expanded=False):
-                    # Mostra só as colunas que importam, formatando as datas
-                    st.dataframe(df_avarias_periodo[['Data', 'Produto', 'Qtd_KG']], use_container_width=True, hide_index=True)
-                    
-            else:
-                st.success(f"🎉 Excelente! Nenhuma avaria registrada entre {ini.strftime('%d/%m')} e {fim.strftime('%d/%m')}.")
-        else: 
-            st.info("Nenhuma avaria registrada no sistema ainda.")
-
-else: st.info("Sincronizando dados ou nenhuma venda no período...")
+                    elif perc <= 95: return 'B (Aten

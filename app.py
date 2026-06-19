@@ -400,7 +400,8 @@ if not df_base.empty and len(datas_sel) == 2:
                     if perc <= 80: return 'A (Crítico)'
                     elif perc <= 95: return 'B (Atenção)'
                     else: return 'C (Normal)'
-       df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
+                    
+                df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
                 
                 # 6. Organizando a tabela com a nova coluna na ordem que você pediu
                 df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG_Avaria', 'Qtd_KG_Vendido', 'Custo_Total_R$', '% Acumulado']]
@@ -426,6 +427,7 @@ if not df_base.empty and len(datas_sel) == 2:
                 st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")
                 
                 # Extrai o dia da semana da data de lançamento (0=Segunda, 6=Domingo)
+                # Converter para datetime caso ainda não seja
                 df_avarias_periodo['Dia_Semana'] = pd.to_datetime(df_avarias_periodo['Data']).dt.weekday
                 
                 mapa_dias = {
@@ -454,8 +456,4 @@ if not df_base.empty and len(datas_sel) == 2:
         else: 
             st.info("Nenhuma avaria registrada no sistema ainda.")
 
-else: st.info("Sincronizando dados ou nenhuma venda no período...") 
-
-                
-
-
+else: st.info("Sincronizando dados ou nenhuma venda no período...")

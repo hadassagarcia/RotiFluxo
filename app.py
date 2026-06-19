@@ -398,4 +398,5 @@ if not df_base.empty and len(datas_sel) == 2:
                 
                 def classificar_abc(perc):
                     if perc <= 80: return 'A (Crítico)'
-                    elif perc <= 95: return 'B (Aten
+                    elif perc <= 95: return 'B (Atenção)'
+                    else: return 'C (Normal)'

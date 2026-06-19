@@ -117,8 +117,10 @@ def carregar(arq):
         df['Data_Ref'] = pd.to_datetime(df['Data'])
         df['Data_Date'] = df['Data_Ref'].dt.date
         return df
-    except: return pd.DataFrame()
-
+    except Exception as e:
+        # O dedo-duro ativado:
+        st.error(f"🚨 Não consegui ler a planilha {arq}. Erro: {e}")
+        return pd.DataFrame()
 # ==========================================
 # CABEÇALHO: LOGO (ESQUERDA) | FILTROS (DIREITA)
 # ==========================================

@@ -234,7 +234,7 @@ if not df_base.empty and len(datas_sel) == 2:
 
     # --- ABA HORÁRIOS DE PICO ---
     with aba_pico:
-        st.subheader("🔥 Mapa de Calor")
+        st.subheader("🔥 Picos")
         st.write("Descubra os horários de maior fluxo em cada dia da semana para alinhar a produção da mesa.")
         
         if 'Hora' in df_filt.columns:
@@ -267,22 +267,6 @@ if not df_base.empty and len(datas_sel) == 2:
             abc['% Acum'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()).cumsum() * 100
             abc['Curva'] = abc['% Acum'].apply(lambda x: 'A' if x <= 80 else ('B' if x <= 95 else 'C'))
             st.table(abc[['Curva', 'Produto', 'Valor_Final']].map(lambda x: fmt(x) if isinstance(x, float) else x))
-
-    # --- ABA RUPTURA ---
-    with aba_ruptura:
-        if 'Hora' in df_filt.columns:
-            vendas_abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
-            if not vendas_abc.empty:
-                vendas_abc['% Acum'] = (vendas_abc['Valor_Final'] / vendas_abc['Valor_Final'].sum()).cumsum() * 100
-                lista_a = vendas_abc[vendas_abc['% Acum'] <= 80]['Produto'].tolist()
-                prod_analise = st.selectbox("Auditar Fluxo Horário (Dia Final):", lista_a if lista_a else vendas_abc['Produto'].head(5).tolist())
-                df_hora = df_filt[(df_filt['Produto'] == prod_analise) & (df_filt['Data_Date'] == fim)].copy()
-                if not df_hora.empty:
-                    fluxo_hora = df_hora.groupby('Hora')['Valor_Final'].sum().reset_index().sort_values('Hora')
-                    st.line_chart(fluxo_hora.set_index('Hora')['Valor_Final'])
-                    ult_h = int(fluxo_hora['Hora'].max())
-                    if ult_h < 13: st.error(f"Ruptura! Parou de vender às {ult_h}h.")
-                    else: st.success(f"Fluxo normal até às {ult_h}h.")
 
     # --- ABA AVARIA ---
     with aba_avaria:

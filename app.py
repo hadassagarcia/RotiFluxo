@@ -192,8 +192,8 @@ if not df_base.empty and len(datas_sel) == 2:
 
     st.write("<br>", unsafe_allow_html=True) # Quebra de linha para dar um respiro antes das abas
 
-    aba_perf, aba_vendas, aba_pico, aba_abc, aba_ruptura, aba_avaria = st.tabs([
-        "📈 Margem Real", "📊 Visão Diária", "🔥 Mapa de Calor", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"
+    aba_perf, aba_vendas, aba_pico, aba_abc, aba_avaria = st.tabs([
+        "📈 Margem Real", "📊 Visão Diária", "🔥 Mapa de Calor", "🏆 ABC", "🗑️ Avaria"
     ])
 
     def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')

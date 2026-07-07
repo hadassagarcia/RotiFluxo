@@ -5,26 +5,70 @@ import time
 from github import Github
 import io
 
-# 1. CONFIGURAÇÃO E DESIGN
-st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon="🍗")
+# 1. CONFIGURAÇÃO - Layout Wide
+st.set_page_config(page_title="RotiFácil Pro", layout="wide", page_icon="🍗")
 
-# --- CSS PROFISSIONAL (CAIXA MESTRE) ---
+# --- DESIGN SYSTEM PROFISSIONAL (CSS) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #f1f5f9; }
-    .block-container { 
-        background-color: white !important; border-radius: 24px !important; 
-        padding: 40px 50px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
-        max-width: 1200px !important; margin-top: 40px !important;
+    /* Fundo do App */
+    .stApp { background-color: #f8fafc; }
+
+    /* A "Caixa Mestre" que você queria */
+    .main-dashboard {
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 40px;
+        margin: 20px auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        max-width: 1200px;
     }
-    .metric-card { 
-        background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; 
-        padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); 
+
+    /* Cards de Métricas (estilo Donezo) */
+    .card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
-    div[data-testid="stTabs"] button { border-radius: 12px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 20px; }
-    div[data-testid="stTabs"] button[aria-selected="true"] { background-color: #c92a2a !important; color: white !important; }
+    
+    /* Abas como botões modernos */
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] { justify-content: center; gap: 15px; }
+    div[data-testid="stTabs"] button {
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        background: #f1f5f9 !important;
+        border: none !important;
+        padding: 10px 25px !important;
+    }
+    div[data-testid="stTabs"] button[aria-selected="true"] {
+        background: #0f172a !important; /* Cor sólida profissional */
+        color: white !important;
+    }
     </style>
 """, unsafe_allow_html=True)
+
+# Início do contêiner mestre
+st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
+
+# --- SEU CÓDIGO DE LÓGICA E DADOS ---
+# [AQUI VOCÊ MANTÉM SEU CÓDIGO DE LOGIN, CARGA DE DADOS E FILTROS...]
+
+# --- DASHBOARD PROFISSIONAL ---
+# Exemplo de como usar os novos cartões de métrica
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.markdown('''<div class="card">
+        <p style="color: #64748b; font-size: 14px; margin:0;">Faturamento Atual</p>
+        <p style="font-size: 28px; font-weight: 800; margin:0;">R$ 10.648,31</p>
+    </div>''', unsafe_allow_html=True)
+
+# [AQUI VOCÊ SEGUE COM SUAS ABAS ABAIXO]
+# tabs = st.tabs(["📈 Margem", "📊 Vendas", ...])
+
+# Fechamento do contêiner mestre
+st.markdown('</div>', unsafe_allow_html=True)
 
 # 🔐 LOGIN
 if 'logado' not in st.session_state: st.session_state['logado'] = False

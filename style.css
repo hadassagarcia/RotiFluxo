@@ -2,26 +2,34 @@
 [data-testid="stSidebar"] { display: none; }
 
 /* Centralizar as abas e configurar a aba selecionada em tom de cinza */
-div[data-baseweb="tab-list"] {
-    justify-content: center;
-    gap: 8px;
+/* Centralizar as abas e dar espaçamento entre as caixinhas */
+div[data-baseweb="tab-list"], div[data-testid="stTabs"] > div {
+    justify-content: center !important;
+    gap: 12px; 
 }
-button[data-baseweb="tab"] { 
-    background-color: transparent !important; 
-    border-radius: 8px !important; 
-    border: 1px solid #e2e8f0 !important;
-}
-button[aria-selected="true"] { 
-    background-color: #e2e8f0 !important; /* Tom de cinza suave */
-    color: #1e293b !important; /* Texto escuro para dar contraste */
-    border: 1px solid #cbd5e1 !important;
-}
-button[data-baseweb="tab"] p { font-size: 16px !important; font-weight: 600 !important; }
 
-/* Fonte e fundo padrão */
-label[data-testid="stWidgetLabel"] p { font-size: 16px !important; font-weight: bold !important; }
-.stDataFrame td, .stDataFrame th { font-size: 16px !important; }
-.main { background-color: #f8f9fa; }
+/* O visual da caixinha (borda arredondada, fundo branco e padding) */
+button[data-baseweb="tab"], div[data-testid="stTabs"] button { 
+    background-color: #ffffff !important; 
+    border-radius: 12px !important; 
+    border: 1px solid #cbd5e1 !important;
+    padding: 12px 24px !important; /* Deixa a caixa mais "gordinha" */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+}
+
+/* O visual da caixinha quando está SELECIONADA (Vermelho RotiFácil) */
+button[aria-selected="true"], div[data-testid="stTabs"] button[aria-selected="true"] { 
+    background-color: #c92a2a !important; 
+    color: white !important; 
+    border: 1px solid #c92a2a !important;
+    box-shadow: 0 4px 6px rgba(201,42,42,0.2) !important; /* Sombra vermelha leve */
+}
+
+/* O tamanho da letra dentro das caixinhas */
+button[data-baseweb="tab"] p, div[data-testid="stTabs"] button p { 
+    font-size: 18px !important; /* Aumentamos a fonte */
+    font-weight: 700 !important; /* Letra mais grossa para dar destaque */
+}
 
 /* =========================================================
    ADICIONADO APENAS PARA AS MÉTRICAS NOVAS (MoM e Total)

@@ -202,7 +202,7 @@ if not df_base.empty and len(datas_sel) == 2:
         {sinal} R$ {abs(dif_valor):,.2f}</p>
     </div>''', unsafe_allow_html=True)
 
-    st.write("<br>")
+    st.markdown("<br>", unsafe_allow_html=True)
 
     aba_perf, aba_vendas, aba_pico, aba_abc, aba_avaria = st.tabs([
         "📈 Margem Real", "📊 Visão Diária", "🔥 Picos", "🏆 ABC", "🗑️ Avaria"

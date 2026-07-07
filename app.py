@@ -5,16 +5,14 @@ import time
 from github import Github
 import io
 
-# 1. CONFIGURAÇÃO - Layout Wide
+# 1. CONFIGURAÇÃO
 st.set_page_config(page_title="RotiFácil Pro", layout="wide", page_icon="🍗")
 
-# --- DESIGN SYSTEM PROFISSIONAL (CSS) ---
+# --- CSS PROFISSIONAL (DESIGN SAAS) ---
 st.markdown("""
     <style>
-    /* Fundo do App */
-    .stApp { background-color: #f8fafc; }
-
-    /* A "Caixa Mestre" que você queria */
+    .stApp { background-color: #f1f5f9; }
+    /* A Caixa Mestre */
     .main-dashboard {
         background: #ffffff;
         border-radius: 24px;
@@ -23,53 +21,60 @@ st.markdown("""
         box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         max-width: 1200px;
     }
-
-    /* Cards de Métricas (estilo Donezo) */
-    .card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 20px;
-        padding: 24px;
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    .metric-card { 
+        background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; 
+        padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); 
     }
-    
-    /* Abas como botões modernos */
-    div[data-testid="stTabs"] [data-baseweb="tab-list"] { justify-content: center; gap: 15px; }
-    div[data-testid="stTabs"] button {
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        background: #f1f5f9 !important;
-        border: none !important;
-        padding: 10px 25px !important;
-    }
-    div[data-testid="stTabs"] button[aria-selected="true"] {
-        background: #0f172a !important; /* Cor sólida profissional */
-        color: white !important;
-    }
+    /* Abas Profissionais */
+    div[data-testid="stTabs"] button { border-radius: 12px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 20px; }
+    div[data-testid="stTabs"] button[aria-selected="true"] { background-color: #c92a2a !important; color: white !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# Início do contêiner mestre
+# 🔐 LOGIN
+if 'logado' not in st.session_state: st.session_state['logado'] = False
+if not st.session_state['logado']:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    _, col2, _ = st.columns([1, 1, 1])
+    with col2:
+        usuario = st.text_input("👤 Usuário")
+        senha = st.text_input("🔑 Senha", type="password")
+        if st.button("Entrar", type="primary"):
+            if usuario.strip().lower() in ["hadassa", "thiago", "mariana", "geyzzon"]:
+                st.session_state['logado'] = True
+                st.rerun()
+    st.stop()
+
+# --- INÍCIO DA CAIXA MESTRE ---
 st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
 
-# --- SEU CÓDIGO DE LÓGICA E DADOS ---
-# [AQUI VOCÊ MANTÉM SEU CÓDIGO DE LOGIN, CARGA DE DADOS E FILTROS...]
+# CABEÇALHO E FILTROS
+col_logo, _, col_filial, col_data = st.columns([2, 1, 2, 2])
+with col_logo:
+    st.image("https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/logo.png", width=180)
+unidade = col_filial.selectbox("📍 Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
+datas_sel = col_data.date_input("📅 Período:", value=(datetime.today().date().replace(day=1), datetime.today().date()))
+st.divider()
 
-# --- DASHBOARD PROFISSIONAL ---
-# Exemplo de como usar os novos cartões de métrica
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.markdown('''<div class="card">
-        <p style="color: #64748b; font-size: 14px; margin:0;">Faturamento Atual</p>
-        <p style="font-size: 28px; font-weight: 800; margin:0;">R$ 10.648,31</p>
-    </div>''', unsafe_allow_html=True)
+# LÓGICA DE DADOS (Mantida conforme seu original)
+# [Aqui o seu carregamento de dados permanece igual]
+df_base = pd.DataFrame() # Simplificado para estrutura, use sua função carregar()
+if len(datas_sel) == 2:
+    ini, fim = datas_sel
+    # ... (Sua lógica de cálculos e fat_atual aqui)
 
-# [AQUI VOCÊ SEGUE COM SUAS ABAS ABAIXO]
-# tabs = st.tabs(["📈 Margem", "📊 Vendas", ...])
+    # DASHBOARD PROFISSIONAL
+    c1, c2, c3 = st.columns(3)
+    c1.markdown(f'<div class="metric-card"><h3>Faturamento</h3><p style="font-size:24px; font-weight:800">R$ 10.648,31</p></div>', unsafe_allow_html=True)
+    c2.markdown(f'<div class="metric-card"><h3>Comparação</h3><p style="font-size:24px; font-weight:800">01/06 a 06/06</p>Referência anterior</div>', unsafe_allow_html=True)
+    c3.markdown(f'<div class="metric-card"><h3>Meta</h3><p style="font-size:24px; font-weight:800">21.3%</p></div>', unsafe_allow_html=True)
 
-# Fechamento do contêiner mestre
-st.markdown('</div>', unsafe_allow_html=True)
+    st.write("<br>")
+    tabs = st.tabs(["📈 Margem", "📊 Vendas", "🔥 Picos", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"])
+    with tabs[0]: st.subheader("Margem Real"); st.dataframe(pd.DataFrame(), use_container_width=True)
+    # ... (Adicione as outras abas aqui)
 
+st.markdown('</div>', unsafe_allow_html=True) # Fim da Caixa Mestre
 # 🔐 LOGIN
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 if not st.session_state['logado']:

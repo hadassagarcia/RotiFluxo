@@ -184,17 +184,17 @@ if not df_base.empty and len(datas_sel) == 2:
     df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
     
     # 1. CÁLCULO FINANCEIRO ATUAL E ANTERIOR
-    fat_atual = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
+    fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
     
     # Define o período do mês passado (mesmos dias)
     ini_ant = (pd.to_datetime(ini) - pd.DateOffset(months=1)).date()
     fim_ant = (pd.to_datetime(fim) - pd.DateOffset(months=1)).date()
     fat_ant = df_base[(df_base['Data_Date'] >= ini_ant) & (df_base['Data_Date'] <= fim_ant) & (df_base['CODOPER'] == 'S')]['Valor_Final'].sum()
     
-    dif_valor = fat_atual - fat_ant
+    dif_valor = fat_periodo - fat_ant
     
-    # 2. Cálculo do progresso (Corrigido para fat_atual)
-    progresso = min(fat_atual / META_FATURAMENTO, 1.0)
+    # 2. Cálculo do progresso
+    progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
     
     # 3. Adição da Barrinha
     st.markdown(f"### 🎯 Meta de Faturamento ({progresso*100:.1f}%)")
@@ -210,7 +210,7 @@ if not df_base.empty and len(datas_sel) == 2:
     # Card 1: Total Vendido
     c1.markdown(f'''<div class="card">
         <p style="color: #64748b; font-size: 14px; margin:0;">Total Vendido</p>
-        <p style="font-size: 24px; font-weight: 800; margin:0;">R$ {fat_atual:,.2f}</p>
+        <p style="font-size: 24px; font-weight: 800; margin:0;">R$ {fat_periodo:,.2f}</p>
     </div>''', unsafe_allow_html=True)
     
     # Card 2: % Meta

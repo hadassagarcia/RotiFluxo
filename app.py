@@ -84,22 +84,26 @@ st.markdown("""
     /* Esconder a barra lateral antiga */
     [data-testid="stSidebar"] { display: none; }
     
-    /* Centralizar as abas e configurar a aba selecionada em tom de cinza */
-    div[data-baseweb="tab-list"] {
-        justify-content: center;
+    /* Centralizar as abas e configurar a aba selecionada (NOVO E VELHO STREAMLIT) */
+    div[data-baseweb="tab-list"], div[data-testid="stTabs"] > div {
+        justify-content: center !important;
         gap: 8px;
     }
-    button[data-baseweb="tab"] { 
+    button[data-baseweb="tab"], div[data-testid="stTabs"] button { 
         background-color: transparent !important; 
         border-radius: 8px !important; 
         border: 1px solid #e2e8f0 !important;
+        padding: 5px 15px !important;
     }
-    button[aria-selected="true"] { 
-        background-color: #e2e8f0 !important; /* Tom de cinza suave */
-        color: #1e293b !important; /* Texto escuro para dar contraste */
+    button[aria-selected="true"], div[data-testid="stTabs"] button[aria-selected="true"] { 
+        background-color: #e2e8f0 !important; 
+        color: #1e293b !important; 
         border: 1px solid #cbd5e1 !important;
     }
-    button[data-baseweb="tab"] p { font-size: 16px !important; font-weight: 600 !important; }
+    button[data-baseweb="tab"] p, div[data-testid="stTabs"] button p { 
+        font-size: 16px !important; 
+        font-weight: 600 !important; 
+    }
     
     /* Fonte e fundo padrão */
     label[data-testid="stWidgetLabel"] p { font-size: 16px !important; font-weight: bold !important; }
@@ -129,8 +133,8 @@ col_logo, col_vazia, col_filial, col_data = st.columns([2, 0.5, 1.5, 2])
 
 with col_logo:
     try:
-        # Puxa a logo nova direto do seu GitHub
-        st.image("https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/logo.png", width=250)
+        # Agora puxa o arquivo local direto da sua pasta, à prova de falhas!
+        st.image("logo.png", width=250)
     except:
         st.markdown("### 🍗 RotiFácil")
         

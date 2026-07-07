@@ -193,18 +193,17 @@ if not df_base.empty and len(datas_sel) == 2:
     
     dif_valor = fat_atual - fat_ant
     
+    # 2. Cálculo do progresso (Corrigido para fat_atual)
+    progresso = min(fat_atual / META_FATURAMENTO, 1.0)
     
-    # 1. Cálculo do progresso (já feito no seu código, garantindo que esteja aqui)
-    progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
-    
-    # 2. Adição da Barrinha (O visual que você gosta)
+    # 3. Adição da Barrinha
     st.markdown(f"### 🎯 Meta de Faturamento ({progresso*100:.1f}%)")
     st.progress(progresso)
     
-    # Adiciona um pequeno respiro antes dos cards
+    # Adiciona um pequeno respiro
     st.write("<br>", unsafe_allow_html=True)
     
-    # 2. EXIBIÇÃO DOS 3 CARDS PROFISSIONAIS (Cálculo MoM incluso)
+    # 4. EXIBIÇÃO DOS 3 CARDS PROFISSIONAIS
     st.markdown("### 📊 Performance Executiva")
     c1, c2, c3 = st.columns(3)
     
@@ -220,7 +219,7 @@ if not df_base.empty and len(datas_sel) == 2:
         <p style="font-size: 24px; font-weight: 800; margin:0;">{progresso*100:.1f}%</p>
     </div>''', unsafe_allow_html=True)
     
-    # Card 3: Análise MoM (O que você pediu)
+    # Card 3: Análise MoM
     sinal = "+" if dif_valor >= 0 else ""
     cor_mom = "#16a34a" if dif_valor >= 0 else "#dc2626"
     c3.markdown(f'''<div class="card">

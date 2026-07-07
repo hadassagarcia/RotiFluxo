@@ -78,60 +78,68 @@ PRECIFICACAO_REAL = {
     "PANQUECA CARNE MOIDA KG": [12.16, 29.99],
 }
 
-# --- ESTILIZAÇÃO CSS ---
+# --- ESTILIZAÇÃO CSS (IDENTIDADE ROTIFÁCIL & CAIXA MESTRE) ---
 st.markdown("""
     <style>
-    /* Fundo da página levemente cinza para destacar os cartões brancos */
-    .stApp { background-color: #f4f7f6; }
-    
-    /* Esconder a barra lateral antiga */
+    /* Esconder o menu lateral padrão */
     [data-testid="stSidebar"] { display: none; }
     
-    /* Estilização das Abas (Menu) - Arredondadas e com sombra */
-    div[data-baseweb="tab-list"], div[data-testid="stTabs"] > div {
+    /* 1. Fundo da Tela Inteira (Cinza bem claro para dar contraste) */
+    .stApp {
+        background-color: #eef2f5 !important;
+    }
+    
+    /* 2. A Caixa Mestre Arredondada (Engloba todo o sistema) */
+    .block-container {
+        background-color: #ffffff;
+        border-radius: 30px;
+        padding: 3rem !important;
+        box-shadow: 0px 10px 40px rgba(0, 0, 0, 0.08);
+        max-width: 90% !important; /* Limita a largura para criar o efeito de flutuação */
+        margin-top: 3rem !important;
+        margin-bottom: 3rem !important;
+    }
+    
+    /* 3. Centralização e Estilo das Abas */
+    div[data-testid="stTabs"] div[role="tablist"] {
         justify-content: center !important;
         gap: 12px;
         margin-bottom: 20px;
     }
-    button[data-baseweb="tab"], div[data-testid="stTabs"] button { 
-        background-color: white !important; 
+    div[data-testid="stTabs"] button { 
+        background-color: #f8f9fa !important; 
         border-radius: 20px !important; 
         border: 1px solid #e2e8f0 !important;
-        padding: 8px 20px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        padding: 10px 25px !important;
+        color: #475569 !important;
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        transition: all 0.3s ease;
     }
-    button[aria-selected="true"], div[data-testid="stTabs"] button[aria-selected="true"] { 
-        background-color: #125b33 !important; /* Verde escuro do modelo */
+    /* Aba Selecionada - Vermelho RotiFácil */
+    div[data-testid="stTabs"] button[aria-selected="true"] { 
+        background-color: #c92a2a !important; 
         color: white !important; 
         border: none !important;
-    }
-    button[data-baseweb="tab"] p, div[data-testid="stTabs"] button p { 
-        font-size: 16px !important; 
-        font-weight: 600 !important; 
+        box-shadow: 0px 4px 12px rgba(201, 42, 42, 0.3);
     }
     
-    /* Estilização dos Cartões de Indicadores (Metrics) */
+    /* 4. Cartões de Indicadores (Metrics) com toque Amarelo RotiFácil */
     [data-testid="metric-container"] {
-        background-color: white;
+        background-color: #ffffff;
+        border-left: 6px solid #f5a623; /* Amarelo Ouro Logo */
         border-radius: 16px;
-        padding: 15px 20px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-        border: 1px solid #eef2f6;
+        padding: 20px 25px;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.04);
+        border-top: 1px solid #f1f5f9;
+        border-right: 1px solid #f1f5f9;
+        border-bottom: 1px solid #f1f5f9;
     }
     [data-testid="stMetricValue"] {
-        font-size: 28px !important;
-        font-weight: 800 !important;
-        color: #111827;
+        font-size: 32px !important;
+        font-weight: 900 !important;
+        color: #1e293b;
     }
-    
-    /* Estilização dos Botões de Ação arredondados */
-    .stButton > button {
-        border-radius: 20px !important;
-        font-weight: bold;
-    }
-    
-    /* Elementos gerais */
-    .main { background-color: transparent; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -206,58 +214,54 @@ except Exception as e:
 
 # --- INÍCIO DO CÓDIGO CORRIGIDO ---
 if not df_base.empty and len(datas_sel) == 2:
-    ini, fim = datas_sel
-    df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
-    
-    # --- CÁLCULO DE PERÍODO ANTERIOR (MÊS PASSADO) ---
-    # A ferramenta do Pandas recua exatamente 1 mês nas datas escolhidas
+    # --- CÁLCULO FINANCEIRO vs MÊS PASSADO ---
     ini_ant = (pd.to_datetime(ini) - pd.DateOffset(months=1)).date()
     fim_ant = (pd.to_datetime(fim) - pd.DateOffset(months=1)).date()
     
-    # Filtra os dados do mês passado para a comparação
     df_filt_ant = df_base[(df_base['Data_Date'] >= ini_ant) & (df_base['Data_Date'] <= fim_ant)].copy()
     
-    # Faturamentos
     fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
     fat_periodo_ant = df_filt_ant[df_filt_ant['CODOPER'] == 'S']['Valor_Final'].sum()
     
-    # Calcula a diferença percentual (Crescimento ou Queda)
-    if fat_periodo_ant > 0:
-        variacao_perc = ((fat_periodo - fat_periodo_ant) / fat_periodo_ant) * 100
-    else:
-        variacao_perc = 100.0 if fat_periodo > 0 else 0.0
-        
+    # Diferença exata em Reais (R$)
+    diferenca_rs = fat_periodo - fat_periodo_ant
+    sinal = "+" if diferenca_rs > 0 else ""
+    texto_diferenca = f"{sinal} R$ {diferenca_rs:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
     progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
     
     st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
     st.progress(progresso)
     
-    # --- NOVOS CARTÕES ARREDONDADOS (METRICS) ---
-    # Isso vai criar 3 caixas lado a lado exibindo os KPIs e a variação
+    st.write("<br>", unsafe_allow_html=True)
+    
+    # --- NOVOS CARTÕES (METRICS) COM IDENTIDADE VISUAL ---
     col_m1, col_m2, col_m3 = st.columns(3)
     
     col_m1.metric(
         label="💰 Faturamento Atual", 
-        value=f"R$ {fat_periodo:,.2f}", 
-        delta=f"{variacao_perc:.1f}% vs mês anterior"
+        value=f"R$ {fat_periodo:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'), 
+        delta=f"{texto_diferenca} vs mês anterior",
+        delta_color="normal"
     )
     
     col_m2.metric(
-        label="📅 Período Comparado", 
-        value=f"{ini_ant.strftime('%d/%m')} a {fim_ant.strftime('%d/%m')}", 
-        delta="Base do cálculo anterior",
-        delta_color="off" # Mantém a cor neutra (cinza) porque não é dinheiro
+        label="📅 Referência Anterior", 
+        value=f"R$ {fat_periodo_ant:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'), 
+        delta=f"Mesmos dias ({ini_ant.strftime('%d/%m')} a {fim_ant.strftime('%d/%m')})",
+        delta_color="off"
     )
     
+    falta_rs = max(0, META_FATURAMENTO - fat_periodo)
     col_m3.metric(
         label="🚀 Atingimento da Meta", 
         value=f"{progresso*100:.1f}%", 
-        delta=f"Falta R$ {max(0, META_FATURAMENTO - fat_periodo):,.2f}" if progresso < 1 else "Meta Batida!",
+        delta=f"Falta R$ {falta_rs:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') if progresso < 1 else "Meta Batida!",
         delta_color="normal" if progresso < 1 else "off"
     )
 
-    st.write("<br>", unsafe_allow_html=True) # Quebra de linha para dar um respiro antes das abas
-
+    st.write("<br>", unsafe_allow_html=True)
+    
     aba_perf, aba_vendas, aba_pico, aba_abc, aba_avaria = st.tabs([
         "📈 Margem Real", "📊 Visão Diária", "🔥 Picos", "🏆 ABC", "🗑️ Avaria"
     ])

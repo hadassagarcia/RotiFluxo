@@ -81,34 +81,57 @@ PRECIFICACAO_REAL = {
 # --- ESTILIZAÇÃO CSS ---
 st.markdown("""
     <style>
+    /* Fundo da página levemente cinza para destacar os cartões brancos */
+    .stApp { background-color: #f4f7f6; }
+    
     /* Esconder a barra lateral antiga */
     [data-testid="stSidebar"] { display: none; }
     
-    /* Centralizar as abas e configurar a aba selecionada (NOVO E VELHO STREAMLIT) */
+    /* Estilização das Abas (Menu) - Arredondadas e com sombra */
     div[data-baseweb="tab-list"], div[data-testid="stTabs"] > div {
         justify-content: center !important;
-        gap: 8px;
+        gap: 12px;
+        margin-bottom: 20px;
     }
     button[data-baseweb="tab"], div[data-testid="stTabs"] button { 
-        background-color: transparent !important; 
-        border-radius: 8px !important; 
+        background-color: white !important; 
+        border-radius: 20px !important; 
         border: 1px solid #e2e8f0 !important;
-        padding: 5px 15px !important;
+        padding: 8px 20px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
     button[aria-selected="true"], div[data-testid="stTabs"] button[aria-selected="true"] { 
-        background-color: #e2e8f0 !important; 
-        color: #1e293b !important; 
-        border: 1px solid #cbd5e1 !important;
+        background-color: #125b33 !important; /* Verde escuro do modelo */
+        color: white !important; 
+        border: none !important;
     }
     button[data-baseweb="tab"] p, div[data-testid="stTabs"] button p { 
         font-size: 16px !important; 
         font-weight: 600 !important; 
     }
     
-    /* Fonte e fundo padrão */
-    label[data-testid="stWidgetLabel"] p { font-size: 16px !important; font-weight: bold !important; }
-    .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
-    .main { background-color: #f8f9fa; }
+    /* Estilização dos Cartões de Indicadores (Metrics) */
+    [data-testid="metric-container"] {
+        background-color: white;
+        border-radius: 16px;
+        padding: 15px 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        border: 1px solid #eef2f6;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 28px !important;
+        font-weight: 800 !important;
+        color: #111827;
+    }
+    
+    /* Estilização dos Botões de Ação arredondados */
+    .stButton > button {
+        border-radius: 20px !important;
+        font-weight: bold;
+    }
+    
+    /* Elementos gerais */
+    .main { background-color: transparent; }
     </style>
     """, unsafe_allow_html=True)
 

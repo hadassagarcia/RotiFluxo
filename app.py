@@ -6,35 +6,44 @@ import time
 # 1. CONFIGURAÇÃO E DESIGN
 st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon="🍗")
 
-# --- LOGO CORRIGIDO E ESTRUTURADO ---
+# ==========================================
+# 🔐 SISTEMA DE LOGIN DE ACESSO
+# ==========================================
+if 'logado' not in st.session_state:
+st.session_state['logado'] = False
+
+# Se não estiver logado, mostra a tela de login e trava o resto
 if not st.session_state['logado']:
-    st.markdown("<br><br>", unsafe_allow_html=True) 
-    col1, col2, col3 = st.columns([1, 1, 1]) 
-    
-    with col2:
-        st.markdown("### 🍗 Acesso Restrito - RotiFácil")
-        st.info("Digite suas credenciais para acessar o painel.")
+st.markdown("<br><br>", unsafe_allow_html=True) # Dá um espaço no topo
+col1, col2, col3 = st.columns([1, 1, 1]) # Cria 3 colunas para o login ficar centralizado
 
-        usuario = st.text_input("👤 Usuário")
-        senha = st.text_input("🔑 Senha", type="password")
+with col2:
+st.markdown("### 🍗 Acesso Restrito - RotiFácil")
+st.info("Digite suas credenciais para acessar o painel.")
 
-        if st.button("Entrar", type="primary", use_container_width=True):
-            credenciais = {
-                "hadassa": "2112",
-                "thiago": "0064",
-                "mariana": "1288",
-                "geyzzon": "0064"
-            }
-            # O recuo abaixo é crucial (o Python precisa desse espaço)
-            user_formatado = usuario.strip().lower()
-            if user_formatado in credenciais and credenciais[user_formatado] == senha:
-                st.session_state['logado'] = True
-                st.session_state['usuario_logado'] = usuario.strip().title()
-                st.rerun()
-            else:
-                st.error("❌ Usuário ou senha incorretos.")
-    
-    st.stop() # Esse stop também precisa estar alinhado corretamente
+usuario = st.text_input("👤 Usuário")
+senha = st.text_input("🔑 Senha", type="password") # O type="password" esconde a senha com bolinhas
+
+if st.button("Entrar", type="primary", use_container_width=True):
+# Dicionário com os usuários (tudo em minúsculo para o sistema não ligar se digitarem com letra maiúscula ou não)
+credenciais = {
+"hadassa": "2112",
+"thiago": "0064",
+"mariana": "1288",
+"geyzzon": "0064"
+}
+
+# Limpa espaços em branco e joga para minúsculo para checar
+user_formatado = usuario.strip().lower()
+
+if user_formatado in credenciais and credenciais[user_formatado] == senha:
+st.session_state['logado'] = True
+st.session_state['usuario_logado'] = usuario.strip().title() # Guarda o nome bonitinho
+st.rerun() # Recarrega a página (agora vai passar direto pelo if e abrir o painel!)
+else:
+st.error("❌ Usuário ou senha incorretos.")
+
+st.stop() # 🛑 ESTE É O GUARDA-COSTAS! Ele impede que o painel abaixo carregue sem login.
 
 # CONSTANTES DE GESTÃO
 META_FATURAMENTO = 50000.00
@@ -70,9 +79,35 @@ PRECIFICACAO_REAL = {
 }
 
 # --- ESTILIZAÇÃO CSS ---
-with open("style.css") as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+st.markdown("""
+   <style>
+   /* Esconder a barra lateral antiga */
+   [data-testid="stSidebar"] { display: none; }
    
+   /* Centralizar as abas e configurar a aba selecionada em tom de cinza */
+   div[data-baseweb="tab-list"] {
+       justify-content: center;
+       gap: 8px;
+   }
+   button[data-baseweb="tab"] { 
+       background-color: transparent !important; 
+       border-radius: 8px !important; 
+       border: 1px solid #e2e8f0 !important;
+   }
+   button[aria-selected="true"] { 
+       background-color: #e2e8f0 !important; /* Tom de cinza suave */
+       color: #1e293b !important; /* Texto escuro para dar contraste */
+       border: 1px solid #cbd5e1 !important;
+   }
+   button[data-baseweb="tab"] p { font-size: 16px !important; font-weight: 600 !important; }
+   
+   /* Fonte e fundo padrão */
+   label[data-testid="stWidgetLabel"] p { font-size: 16px !important; font-weight: bold !important; }
+   .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
+   .main { background-color: #f8f9fa; }
+   </style>
+   """, unsafe_allow_html=True)
+
 # --- CARGA DE DADOS ---
 @st.cache_data(ttl=60)
 def carregar(arq):
@@ -158,6 +193,7 @@ st.write(f"Total Vendido: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
 st.write("<br>", unsafe_allow_html=True) # Quebra de linha para dar um respiro antes das abas
 
 aba_perf, aba_vendas, aba_pico, aba_abc, aba_avaria = st.tabs([
+        "📈 Margem Real", "📊 Visão Diária", "🔥 Mapa de Calor", "🏆 ABC", "🗑️ Avaria"
         "📈 Margem Real", "📊 Visão Diária", "🔥 Picos", "🏆 ABC", "🗑️ Avaria"
 ])
 

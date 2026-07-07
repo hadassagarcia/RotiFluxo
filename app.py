@@ -79,34 +79,8 @@ PRECIFICACAO_REAL = {
 }
 
 # --- ESTILIZAÇÃO CSS ---
-st.markdown("""
-    <style>
-    /* Esconder a barra lateral antiga */
-    [data-testid="stSidebar"] { display: none; }
-    
-    /* Centralizar as abas e configurar a aba selecionada em tom de cinza */
-    div[data-baseweb="tab-list"] {
-        justify-content: center;
-        gap: 8px;
-    }
-    button[data-baseweb="tab"] { 
-        background-color: transparent !important; 
-        border-radius: 8px !important; 
-        border: 1px solid #e2e8f0 !important;
-    }
-    button[aria-selected="true"] { 
-        background-color: #e2e8f0 !important; /* Tom de cinza suave */
-        color: #1e293b !important; /* Texto escuro para dar contraste */
-        border: 1px solid #cbd5e1 !important;
-    }
-    button[data-baseweb="tab"] p { font-size: 16px !important; font-weight: 600 !important; }
-    
-    /* Fonte e fundo padrão */
-    label[data-testid="stWidgetLabel"] p { font-size: 16px !important; font-weight: bold !important; }
-    .stDataFrame td, .stDataFrame th { font-size: 16px !important; }
-    .main { background-color: #f8f9fa; }
-    </style>
-    """, unsafe_allow_html=True)
+with open("style.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # --- CARGA DE DADOS ---
 @st.cache_data(ttl=60)

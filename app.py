@@ -2,101 +2,140 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import time
-from github import Github
-import io
 
-# 1. CONFIGURAÇÃO
-st.set_page_config(page_title="RotiFácil Pro", layout="wide", page_icon="🍗")
+# 1. CONFIGURAÇÃO E DESIGN
+st.set_page_config(page_title="RotiFácil Performance", layout="wide", page_icon="🍗")
 
-# --- CSS PROFISSIONAL (DESIGN SAAS) ---
-st.markdown("""
-    <style>
-    .stApp { background-color: #f1f5f9; }
-    /* A Caixa Mestre */
-    .main-dashboard {
-        background: #ffffff;
-        border-radius: 24px;
-        padding: 40px;
-        margin: 20px auto;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        max-width: 1200px;
-    }
-    .metric-card { 
-        background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; 
-        padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); 
-    }
-    /* Abas Profissionais */
-    div[data-testid="stTabs"] button { border-radius: 12px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 20px; }
-    div[data-testid="stTabs"] button[aria-selected="true"] { background-color: #c92a2a !important; color: white !important; }
-    </style>
-""", unsafe_allow_html=True)
+# ==========================================
+# 🔐 SISTEMA DE LOGIN DE ACESSO
+# ==========================================
+if 'logado' not in st.session_state:
+    st.session_state['logado'] = False
 
-# 🔐 LOGIN
-if 'logado' not in st.session_state: st.session_state['logado'] = False
+# Se não estiver logado, mostra a tela de login e trava o resto
 if not st.session_state['logado']:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    _, col2, _ = st.columns([1, 1, 1])
-    with col2:
-        usuario = st.text_input("👤 Usuário")
-        senha = st.text_input("🔑 Senha", type="password")
-        if st.button("Entrar", type="primary"):
-            if usuario.strip().lower() in ["hadassa", "thiago", "mariana", "geyzzon"]:
-                st.session_state['logado'] = True
-                st.rerun()
-    st.stop()
-
-# --- INÍCIO DA CAIXA MESTRE ---
-st.markdown('<div class="main-dashboard">', unsafe_allow_html=True)
-
-# CABEÇALHO E FILTROS
-col_logo, _, col_filial, col_data = st.columns([2, 1, 2, 2])
-with col_logo:
-    st.image("https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/logo.png", width=180)
-unidade = col_filial.selectbox("📍 Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
-datas_sel = col_data.date_input("📅 Período:", value=(datetime.today().date().replace(day=1), datetime.today().date()))
-st.divider()
-
-# LÓGICA DE DADOS (Mantida conforme seu original)
-# [Aqui o seu carregamento de dados permanece igual]
-df_base = pd.DataFrame() # Simplificado para estrutura, use sua função carregar()
-if len(datas_sel) == 2:
-    ini, fim = datas_sel
-    # ... (Sua lógica de cálculos e fat_atual aqui)
-
-    # DASHBOARD PROFISSIONAL
-    c1, c2, c3 = st.columns(3)
-    c1.markdown(f'<div class="metric-card"><h3>Faturamento</h3><p style="font-size:24px; font-weight:800">R$ 10.648,31</p></div>', unsafe_allow_html=True)
-    c2.markdown(f'<div class="metric-card"><h3>Comparação</h3><p style="font-size:24px; font-weight:800">01/06 a 06/06</p>Referência anterior</div>', unsafe_allow_html=True)
-    c3.markdown(f'<div class="metric-card"><h3>Meta</h3><p style="font-size:24px; font-weight:800">21.3%</p></div>', unsafe_allow_html=True)
-
-    st.write("<br>")
-    tabs = st.tabs(["📈 Margem", "📊 Vendas", "🔥 Picos", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"])
-    with tabs[0]: st.subheader("Margem Real"); st.dataframe(pd.DataFrame(), use_container_width=True)
-    # ... (Adicione as outras abas aqui)
-
-st.markdown('</div>', unsafe_allow_html=True) # Fim da Caixa Mestre
-# 🔐 LOGIN
-if 'logado' not in st.session_state: st.session_state['logado'] = False
-if not st.session_state['logado']:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    _, col2, _ = st.columns([1, 1, 1])
+    st.markdown("<br><br>", unsafe_allow_html=True) # Dá um espaço no topo
+    col1, col2, col3 = st.columns([1, 1, 1]) # Cria 3 colunas para o login ficar centralizado
+    
     with col2:
         st.markdown("### 🍗 Acesso Restrito - RotiFácil")
+        st.info("Digite suas credenciais para acessar o painel.")
+        
         usuario = st.text_input("👤 Usuário")
-        senha = st.text_input("🔑 Senha", type="password")
+        senha = st.text_input("🔑 Senha", type="password") # O type="password" esconde a senha com bolinhas
+        
         if st.button("Entrar", type="primary", use_container_width=True):
-            if usuario.strip().lower() in ["hadassa", "thiago", "mariana", "geyzzon"]:
+            # Dicionário com os usuários (tudo em minúsculo para o sistema não ligar se digitarem com letra maiúscula ou não)
+            credenciais = {
+                "hadassa": "2112",
+                "thiago": "0064",
+                "mariana": "1288",
+                "geyzzon": "0064"
+            }
+            
+            # Limpa espaços em branco e joga para minúsculo para checar
+            user_formatado = usuario.strip().lower()
+            
+            if user_formatado in credenciais and credenciais[user_formatado] == senha:
                 st.session_state['logado'] = True
-                st.session_state['usuario_logado'] = usuario.strip().title()
-                st.rerun()
-            else: st.error("❌ Usuário ou senha incorretos.")
-    st.stop()
-
-# CONSTANTES
+                st.session_state['usuario_logado'] = usuario.strip().title() # Guarda o nome bonitinho
+                st.rerun() # Recarrega a página (agora vai passar direto pelo if e abrir o painel!)
+            else:
+                st.error("❌ Usuário ou senha incorretos.")
+                
+    st.stop() # 🛑 ESTE É O GUARDA-COSTAS! Ele impede que o painel abaixo carregue sem login.
+    
+# CONSTANTES DE GESTÃO
 META_FATURAMENTO = 50000.00
-IMPOSTO_PERCENTUAL = 0.2925
-PRECIFICACAO_REAL = { "ARROZ C/ CREME FRANGO KG": [16.39, 39.99], "PANQUECA CARNE MOIDA KG": [12.16, 29.99], "PANQUECA FRANGO KG": [14.23, 29.99] }
+IMPOSTO_PERCENTUAL = 0.2925  # 29,25% sobre o Preço de Venda
 
+# --- TABELA DE PRECIFICAÇÃO ATUALIZADA ---
+PRECIFICACAO_REAL = {
+    "ARROZ C/ CREME FRANGO KG": [16.39, 39.99],
+    "ARROZ CREMOSO FRANGO KG": [16.44, 43.99],
+    "ARROZ LEITE C/ CARNE SOL KG": [15.05, 47.99],
+    "BAIAO DE DOIS CF KG": [16.99, 36.99],
+    "CARNE C/ MACAXEIRA KG": [16.50, 29.99], # Assumindo 16.50 como base
+    "CUSCUZ C/ CARNE KG": [14.90, 32.99],
+    "CUSCUZ C/ CARNE MOIDA KG": [10.23, 29.99],
+    "CUSCUZ C/ SALSICHA KG": [7.90, 24.99],
+    "EMPADAO CARNE SOL KG": [21.82, 55.99],
+    "EMPADAO FRANGO KG": [16.69, 52.99],
+    "ESCONDIDINHO CARNE MOIDA KG": [17.18, 44.99],
+    "FRANGO ASSADO CORTE FACIL KG": [23.92, 34.99],
+    "LASANHA CARNE MOIDA KG": [21.24, 45.99],
+    "LASANHA FRANGO KG": [25.41, 45.99],
+    "MACAXEIRA C/ CALABRESA ACEB KG": [9.89, 37.99],
+    "PATE FRANGO KG": [21.85, 44.99],
+    "SOPA CARNE KG": [8.71, 32.99],
+    "TAPIOCA CARNE SOL KG": [21.05, 47.99],
+    "TAPIOCA FRANGO KG": [15.30, 43.99],
+    "TAPIOCA MISTA KG": [14.32, 47.99],
+    "TAPIOCA QUEIJO KG": [19.54, 47.99],
+    "TORTA SALGADA FRANGO KG": [11.00, 39.99],
+    "ALMOCO CF FRANGO KG": [9.90,29.99],
+    "PANQUECA FRANGO KG": [14.23, 29.99],
+    "PANQUECA CARNE MOIDA KG": [12.16, 29.99],
+}
+
+# --- ESTILIZAÇÃO CSS ---
+st.markdown("""
+    <style>
+    /* Fundo da página levemente cinza para destacar os cartões brancos */
+    .stApp { background-color: #f4f7f6; }
+    
+    /* Esconder a barra lateral antiga */
+    [data-testid="stSidebar"] { display: none; }
+    
+    /* Estilização das Abas (Menu) - Arredondadas e com sombra */
+    div[data-baseweb="tab-list"], div[data-testid="stTabs"] > div {
+        justify-content: center !important;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    button[data-baseweb="tab"], div[data-testid="stTabs"] button { 
+        background-color: white !important; 
+        border-radius: 20px !important; 
+        border: 1px solid #e2e8f0 !important;
+        padding: 8px 20px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    button[aria-selected="true"], div[data-testid="stTabs"] button[aria-selected="true"] { 
+        background-color: #125b33 !important; /* Verde escuro do modelo */
+        color: white !important; 
+        border: none !important;
+    }
+    button[data-baseweb="tab"] p, div[data-testid="stTabs"] button p { 
+        font-size: 16px !important; 
+        font-weight: 600 !important; 
+    }
+    
+    /* Estilização dos Cartões de Indicadores (Metrics) */
+    [data-testid="metric-container"] {
+        background-color: white;
+        border-radius: 16px;
+        padding: 15px 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        border: 1px solid #eef2f6;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 28px !important;
+        font-weight: 800 !important;
+        color: #111827;
+    }
+    
+    /* Estilização dos Botões de Ação arredondados */
+    .stButton > button {
+        border-radius: 20px !important;
+        font-weight: bold;
+    }
+    
+    /* Elementos gerais */
+    .main { background-color: transparent; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- CARGA DE DADOS ---
 @st.cache_data(ttl=60)
 def carregar(arq):
     try:
@@ -105,71 +144,327 @@ def carregar(arq):
         df['Data_Ref'] = pd.to_datetime(df['Data'])
         df['Data_Date'] = df['Data_Ref'].dt.date
         return df
-    except: return pd.DataFrame()
+    except Exception as e:
+        # O dedo-duro ativado:
+        st.error(f"🚨 Não consegui ler a planilha {arq}. Erro: {e}")
+        return pd.DataFrame()
 
-# CABEÇALHO
-col_logo, _, col_filial, col_data = st.columns([2, 0.5, 1.5, 2])
+# ==========================================
+# CABEÇALHO: LOGO (ESQUERDA) | FILTROS (DIREITA)
+# ==========================================
+col_logo, col_vazia, col_filial, col_data = st.columns([2, 0.5, 1.5, 2])
+
 with col_logo:
-    st.image("https://raw.githubusercontent.com/hadassagarcia/RotiFluxo/main/logo.png", width=200)
-    if st.button("Sair"): st.session_state['logado'] = False; st.rerun()
+    try:
+        # Agora puxa o arquivo local direto da sua pasta, à prova de falhas!
+        st.image("logo.png", width=250)
+    except:
+        st.markdown("### 🍗 RotiFácil")
+        
+    # Mostra quem está logado e o botão de sair
+    st.caption(f"👤 Operador(a): **{st.session_state.get('usuario_logado', '')}**")
+    if st.button("Sair (Logout)"):
+        st.session_state['logado'] = False
+        st.rerun()
 
-unidade = col_filial.selectbox("📍 Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
-datas_sel = col_data.date_input("📅 Período:", value=(datetime.today().date().replace(day=1), datetime.today().date()))
-st.divider()
+# Pegar uma data base para o calendário carregar corretamente
+df_temp = carregar("vendas_filial2.csv")
+hoje_dados = df_temp['Data_Date'].max() if not df_temp.empty else datetime.today().date()
 
-# DADOS
-arquivo_vendas = "vendas_filial2.csv" if "Filial 2" in unidade else "vendas_filial5.csv"
-arquivo_avarias = "avarias_filial2.csv" if "Filial 2" in unidade else "avarias_filial5.csv"
+with col_filial:
+    st.write("") # Espaço pequeno para alinhar com a logo
+    unidade = st.selectbox("📍 Unidade:", ["Filial 2 (Parnamirim)", "Filial 5 (Planalto)"])
+
+with col_data:
+    st.write("") # Espaço pequeno para alinhar com a logo
+    datas_sel = st.date_input("📅 Selecione o Período:", value=(hoje_dados.replace(day=1), hoje_dados), max_value=hoje_dados)
+
+st.divider() # Linha separadora elegante
+
+# Define os arquivos exatos dependendo da filial escolhida lá no topo
+if "Filial 2" in unidade:
+    arquivo_vendas = "vendas_filial2.csv"
+    arquivo_avarias = "avarias_filial2.csv"
+else:
+    arquivo_vendas = "vendas_filial5.csv"
+    arquivo_avarias = "avarias_filial5.csv"
+
+# Carrega os dados reais baseados na filial escolhida
 df_base = carregar(arquivo_vendas)
-try:
-    repo = Github(st.secrets["token_github"]).get_repo("hadassagarcia/RotiFluxo")
-    df_avarias = pd.read_csv(io.StringIO(repo.get_contents(arquivo_avarias).decoded_content.decode('utf-8')))
-except: df_avarias = pd.DataFrame()
 
-# DASHBOARD
+# 🚀 LÊ AVARIAS "AO VIVO" (Bypassa o Cache Lento do GitHub)
+try:
+    from github import Github
+    import io
+    g = Github(st.secrets["token_github"])
+    repo = g.get_repo("hadassagarcia/RotiFluxo")
+    file_contents = repo.get_contents(arquivo_avarias)
+    df_avarias = pd.read_csv(io.StringIO(file_contents.decoded_content.decode('utf-8')))
+except Exception as e:
+    st.error(f"Erro ao ler avarias ao vivo: {e}")
+    df_avarias = pd.DataFrame()
+
+# --- INÍCIO DO CÓDIGO CORRIGIDO ---
 if not df_base.empty and len(datas_sel) == 2:
     ini, fim = datas_sel
     df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
     
-    fat_atual = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
-    ini_ant = (pd.to_datetime(ini) - pd.DateOffset(months=1)).date()
-    fim_ant = (pd.to_datetime(fim) - pd.DateOffset(months=1)).date()
-    fat_ant = df_base[(df_base['Data_Date'] >= ini_ant) & (df_base['Data_Date'] <= fim_ant) & (df_base['CODOPER'] == 'S')]['Valor_Final'].sum()
-    dif = fat_atual - fat_ant
+    # --- STATUS DA META DINÂMICO ---
+    fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
+    progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
     
-    # KPIs
-    c1, c2, c3 = st.columns(3)
-    c1.markdown(f'<div class="metric-card"><h3>Faturamento</h3><p style="font-size:24px; font-weight:800">R$ {fat_atual:,.2f}</p>{"🔺" if dif >= 0 else "🔻"} R$ {abs(dif):,.2f} vs mês anterior</div>', unsafe_allow_html=True)
-    c2.markdown(f'<div class="metric-card"><h3>Comparação</h3><p style="font-size:24px; font-weight:800">{ini_ant.strftime("%d/%m")} a {fim_ant.strftime("%d/%m")}</p>Referência anterior</div>', unsafe_allow_html=True)
-    c3.markdown(f'<div class="metric-card"><h3>Meta</h3><p style="font-size:24px; font-weight:800">{min(fat_atual/META_FATURAMENTO, 1.0)*100:.1f}%</p>Falta R$ {max(0, META_FATURAMENTO - fat_atual):,.2f}</div>', unsafe_allow_html=True)
+    st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
+    st.progress(progresso)
+    st.write(f"Total Vendido: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
 
-    tabs = st.tabs(["📈 Margem", "📊 Vendas", "🔥 Picos", "🏆 ABC", "🚨 Ruptura", "🗑️ Avaria"])
-    
-    with tabs[0]:
-        st.subheader("Margem Real")
+    st.write("<br>", unsafe_allow_html=True) # Quebra de linha para dar um respiro antes das abas
+
+    aba_perf, aba_vendas, aba_pico, aba_abc, aba_avaria = st.tabs([
+        "📈 Margem Real", "📊 Visão Diária", "🔥 Picos", "🏆 ABC", "🗑️ Avaria"
+    ])
+
+    def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+    # --- ABA PERFORMANCE & MARGEM REAL ---
+    with aba_perf:
         v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({'Valor_Final': 'sum', 'Qtd_KG': 'sum'}).reset_index()
-        st.dataframe(v_prod, use_container_width=True)
+        if not v_prod.empty:
+            v_prod['Custo_Base_Unit'] = v_prod['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
+            v_prod['Preco_Venda_Unit'] = v_prod['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[1])
+            v_prod['Faturamento_Gerencial'] = v_prod['Qtd_KG'] * v_prod['Preco_Venda_Unit']
+            v_prod['Imposto_Total'] = v_prod['Faturamento_Gerencial'] * IMPOSTO_PERCENTUAL
+            v_prod['Custo_Total_Materia_Prima'] = v_prod['Qtd_KG'] * v_prod['Custo_Base_Unit']
+            v_prod['Lucro_R$'] = v_prod['Faturamento_Gerencial'] - v_prod['Imposto_Total'] - v_prod['Custo_Total_Materia_Prima']
+            v_prod['Margem_Real'] = v_prod.apply(lambda r: (r['Lucro_R$'] / r['Faturamento_Gerencial'] * 100) if r['Faturamento_Gerencial'] > 0 else 0, axis=1)
+            
+            df_mostrar = v_prod.sort_values('Lucro_R$', ascending=False)[['Produto', 'Faturamento_Gerencial', 'Lucro_R$', 'Margem_Real']]
+            st.dataframe(df_mostrar.style.format({
+                'Faturamento_Gerencial': fmt, 
+                'Lucro_R$': fmt, 
+                'Margem_Real': '{:.2f}%'
+            }).map(lambda x: 'color: red; font-weight: bold' if isinstance(x, float) and x < 10 else None, subset=['Margem_Real']), 
+            use_container_width=True)
 
-    with tabs[1]:
-        st.subheader("Visão Diária")
-        st.dataframe(pd.pivot_table(df_filt, values='Valor_Final', index='Produto', columns=df_filt['Data_Ref'].dt.strftime('%d/%m'), aggfunc='sum', fill_value=0), use_container_width=True)
+    # --- ABA VISÃO DIÁRIA ---
+    with aba_vendas:
+        df_filt['Val'] = df_filt['Valor_Final']
+        dias_pt = {0:'Seg', 1:'Ter', 2:'Qua', 3:'Qui', 4:'Sex', 5:'Sáb', 6:'Dom'}
+        df_filt['Data_Rotulo'] = df_filt['Data_Ref'].apply(lambda d: f"{d.strftime('%d/%m')} {dias_pt[d.weekday()]}")
+        tab = pd.pivot_table(df_filt, values='Val', index='Produto', columns='Data_Rotulo', aggfunc='sum', fill_value=0)
+        if not tab.empty:
+            ordem_cols = sorted(df_filt['Data_Rotulo'].unique(), key=lambda x: x[:5])
+            tab = tab.reindex(columns=ordem_cols)
+            tab['TOTAL'] = tab.sum(axis=1)
+            tab = tab.sort_values('TOTAL', ascending=False)
+            tab.loc['TOTAL DIA ➔'] = tab.sum(axis=0)
+            st.dataframe(tab.map(fmt), use_container_width=True)
 
-    with tabs[2]:
-        st.subheader("Picos de Fluxo")
-        if 'Hora' in df_filt.columns: st.bar_chart(df_filt[df_filt['CODOPER'] == 'S'].groupby('Hora')['Valor_Final'].sum(), color="#c92a2a")
+    # --- ABA HORÁRIOS DE PICO ---
+    with aba_pico:
+        st.subheader("🔥 Picos")
+        st.write("Descubra os horários de maior fluxo em cada dia da semana para alinhar a produção da mesa.")
+        
+        if 'Hora' in df_filt.columns:
+            df_pico = df_filt[df_filt['CODOPER'] == 'S'].copy()
+            
+            if not df_pico.empty:
+                dias_semana_num = {0:'0-Seg', 1:'1-Ter', 2:'2-Qua', 3:'3-Qui', 4:'4-Sex', 5:'5-Sáb', 6:'6-Dom'}
+                df_pico['Dia_Semana'] = df_pico['Data_Ref'].dt.weekday.map(dias_semana_num)
+                
+                mapa_pico = pd.pivot_table(df_pico, values='Valor_Final', index='Dia_Semana', columns='Hora', aggfunc='sum', fill_value=0)
+                
+                if not mapa_pico.empty:
+                    mapa_pico.index = mapa_pico.index.str[2:]
+                    
+                    dia_sel = st.selectbox("📊 Veja a curva de fluxo de um dia específico:", mapa_pico.index)
+                    st.bar_chart(mapa_pico.loc[dia_sel], color="#1E3A8A")
+                    
+                    st.divider()
+                    st.write("### 🌡️ Matriz Semanal de Faturamento por Hora")
+                    st.caption("Quanto mais forte o tom de vermelho, maior o faturamento. Use isso para saber que horas a comida precisa estar pronta!")
+                    
+                    st.dataframe(mapa_pico.style.background_gradient(cmap='Reds', axis=None).format(fmt), use_container_width=True)
+        else:
+            st.warning("⚠️ Os dados de horário ainda não foram sincronizados pelo robô.")
 
-    with tabs[3]:
-        st.subheader("Curva ABC")
-        st.table(df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().sort_values(ascending=False))
+    # --- ABA CURVA ABC ---
+    with aba_abc:
+        abc = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Valor_Final'].sum().reset_index().sort_values('Valor_Final', ascending=False)
+        if not abc.empty:
+            abc['% Acum'] = (abc['Valor_Final'] / abc['Valor_Final'].sum()).cumsum() * 100
+            abc['Curva'] = abc['% Acum'].apply(lambda x: 'A' if x <= 80 else ('B' if x <= 95 else 'C'))
+            st.table(abc[['Curva', 'Produto', 'Valor_Final']].map(lambda x: fmt(x) if isinstance(x, float) else x))
 
-    with tabs[4]:
-        st.subheader("Análise de Ruptura")
-        st.info("Fluxo monitorado.")
-
-    with tabs[5]:
-        st.subheader("Controle de Avarias")
+    # --- ABA AVARIA ---
+    with aba_avaria:
+        st.subheader("🗑️ Controle e Radar de Avarias")
+        
+        # --- DETETIVE ---
+        try:
+            st.warning(f"🔎 O Streamlit está lendo estas chaves no cofre: {list(st.secrets.keys())}")
+        except Exception as e:
+            st.error("O cofre está totalmente vazio ou inacessível.")
+        # ----------------
+        
+        # 1. ÁREA DE LANÇAMENTO
+        with st.expander("➕ Lançar Nova Avaria", expanded=False):
+            data_avaria = st.date_input("Selecione a Data da Avaria:", value=datetime.today().date())
+            
+            lista_produtos = list(PRECIFICACAO_REAL.keys())
+            df_lancamento = pd.DataFrame({
+                "Produto": lista_produtos,
+                "Qtd_KG": [0.0] * len(lista_produtos)
+            })
+            
+            st.write("Digite a quantidade perdida (em KG) na coluna abaixo:")
+            df_editado = st.data_editor(df_lancamento, hide_index=True, use_container_width=True)
+            
+            if st.button("💾 Gravar Avaria do Dia", type="primary"):
+                avarias_reais = df_editado[df_editado['Qtd_KG'] > 0].copy()
+                
+                if not avarias_reais.empty:
+                    avarias_reais['Data'] = data_avaria.strftime("%Y-%m-%d")
+                    
+                    try:
+                        # Traz a ferramenta do GitHub e a senha do cofre do Streamlit
+                        from github import Github
+                        token = st.secrets["token_github"]
+                        g = Github(token)
+                        repo = g.get_repo("hadassagarcia/RotiFluxo")
+                        
+                        import io # Ferramenta necessária para ler ao vivo
+                        
+                        # Puxa o arquivo atual VIVO usando a variável da filial certa
+                        file_contents = repo.get_contents(arquivo_avarias)
+                        df_vivo = pd.read_csv(io.StringIO(file_contents.decoded_content.decode('utf-8')))
+                        
+                        # Junta o histórico VIVO com o lançamento de agora
+                        df_novas_avarias = pd.concat([df_vivo, avarias_reais], ignore_index=True)
+                        novo_csv = df_novas_avarias.to_csv(index=False)
+                        
+                        # Salva a atualização no GitHub
+                        repo.update_file(file_contents.path, f"Avaria registrada em {data_avaria}", novo_csv, file_contents.sha)
+                        
+                        st.success(f"✅ Sucesso! Avaria de {len(avarias_reais)} produto(s) gravada definitivamente no sistema.")
+                        time.sleep(2) # Pausa rápida para você ler a mensagem
+                        st.cache_data.clear()
+                        st.rerun() # Recarrega a tela para atualizar a tabela de baixo
+                        
+                    except Exception as e:
+                        st.error(f"❌ Erro ao salvar no GitHub. Verifique se o token foi configurado certinho nos Secrets. Erro: {e}")
+                else:
+                    st.warning("⚠️ Você não informou nenhuma quantidade. Preencha a tabela antes de gravar.")
+        
+        st.divider()
+        
+        # 2. DASHBOARD ESTRATÉGICO DE AVARIAS
+        st.write("### 📊 Análise Estratégica de Perdas no Período")
+        
         if not df_avarias.empty:
+            # Garante formato de data
             df_avarias['Data'] = pd.to_datetime(df_avarias['Data']).dt.date
-            st.dataframe(df_avarias[(df_avarias['Data'] >= ini) & (df_avarias['Data'] <= fim)], use_container_width=True)
-else:
-    st.info("Selecione um período para iniciar.")
+            
+            # Filtrando a avaria para obedecer o seletor de datas lá do topo
+            df_avarias_periodo = df_avarias[(df_avarias['Data'] >= ini) & (df_avarias['Data'] <= fim)].copy()
+            
+            if not df_avarias_periodo.empty:
+                # Calculando o Custo da Avaria
+                df_avarias_periodo['Custo_Unit'] = df_avarias_periodo['Produto'].apply(lambda x: PRECIFICACAO_REAL.get(x, [0, 0])[0])
+                df_avarias_periodo['Custo_Total_R$'] = df_avarias_periodo['Qtd_KG'] * df_avarias_periodo['Custo_Unit']
+                
+                total_kg_perdido = df_avarias_periodo['Qtd_KG'].sum()
+                total_rs_perdido = df_avarias_periodo['Custo_Total_R$'].sum()
+                
+                # Calcula a porcentagem de perda baseada no 'fat_periodo' (Total Vendido)
+                perc_avaria = (total_rs_perdido / fat_periodo * 100) if fat_periodo > 0 else 0
+                
+                # --- INDICADORES CHAVE (KPIs) ---
+                col1, col2, col3 = st.columns(3)
+                col1.metric("🗑️ Total Físico Perdido", f"{total_kg_perdido:.2f} KG")
+                col2.metric("💸 Dinheiro no Lixo (Custo)", fmt(total_rs_perdido))
+                col3.metric("📉 % Avaria sobre Venda", f"{perc_avaria:.2f}%", help="O ideal no varejo é manter as perdas abaixo de 2%.")
+                
+                st.write("") # Espaçamento
+                
+                # --- CURVA ABC DE AVARIAS (Foco de Ação) ---
+                st.write("#### 🚨 Curva ABC de Desperdício e Proporção")
+                
+                # 1. Agrupa os produtos na avaria
+                df_abc_avaria = df_avarias_periodo.groupby('Produto').agg({'Qtd_KG': 'sum', 'Custo_Total_R$': 'sum'}).reset_index()
+                df_abc_avaria.rename(columns={'Qtd_KG': 'Qtd_KG_Avaria'}, inplace=True)
+                
+                # 2. Puxa o total VENDIDO em KG do mesmo período (da tabela principal df_filt)
+                df_vendas_kg = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto')['Qtd_KG'].sum().reset_index()
+                df_vendas_kg.rename(columns={'Qtd_KG': 'Qtd_KG_Vendido'}, inplace=True)
+                
+                # 3. Cruza (Junta) a tabela de Avaria com a tabela de Vendas
+                df_abc_avaria = pd.merge(df_abc_avaria, df_vendas_kg, on='Produto', how='left')
+                df_abc_avaria['Qtd_KG_Vendido'] = df_abc_avaria['Qtd_KG_Vendido'].fillna(0) # Se jogou fora mas não vendeu nada, preenche com 0
+                
+                # 4. Ordena para mostrar quem deu mais prejuízo financeiro primeiro
+                df_abc_avaria = df_abc_avaria.sort_values(by='Custo_Total_R$', ascending=False)
+                
+                # 5. Calcula a curva ABC e as classificações
+                df_abc_avaria['% Acumulado'] = (df_abc_avaria['Custo_Total_R$'].cumsum() / df_abc_avaria['Custo_Total_R$'].sum()) * 100
+                
+                def classificar_abc(perc):
+                    if perc <= 80: return 'A (Crítico)'
+                    elif perc <= 95: return 'B (Atenção)'
+                    else: return 'C (Normal)'
+                    
+                df_abc_avaria['Curva ABC'] = df_abc_avaria['% Acumulado'].apply(classificar_abc)
+                
+                # 6. Organizando a tabela com a nova coluna na ordem que você pediu
+                df_abc_avaria = df_abc_avaria[['Curva ABC', 'Produto', 'Qtd_KG_Avaria', 'Qtd_KG_Vendido', 'Custo_Total_R$', '% Acumulado']]
+                
+                # Destaque visual: pinta a linha de vermelho fraco se for item 'Crítico'
+                def pintar_fundo(row):
+                    if 'A' in row['Curva ABC']: return ['background-color: #fee2e2; color: #991b1b'] * len(row)
+                    return [''] * len(row)
+
+                # Exibe a tabela formatada
+                st.dataframe(
+                    df_abc_avaria.style.apply(pintar_fundo, axis=1).format({
+                        'Qtd_KG_Avaria': '{:.2f} KG', 
+                        'Qtd_KG_Vendido': '{:.2f} KG', 
+                        'Custo_Total_R$': fmt, 
+                        '% Acumulado': '{:.1f}%'
+                    }),
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # --- GRÁFICO DE DIAS DA SEMANA ---
+                st.write("#### 📅 Ritmo Semanal de Lançamento de Avarias")
+                
+                # Extrai o dia da semana da data de lançamento (0=Segunda, 6=Domingo)
+                # Converter para datetime caso ainda não seja
+                df_avarias_periodo['Dia_Semana'] = pd.to_datetime(df_avarias_periodo['Data']).dt.weekday
+                
+                mapa_dias = {
+                    0: 'Segunda', 1: 'Terça', 2: 'Quarta', 
+                    3: 'Quinta', 4: 'Sexta', 5: 'Sábado', 6: 'Domingo'
+                }
+                
+                # Agrupa pelo número do dia para manter a ordem correta na tela (Seg a Dom)
+                df_dias = df_avarias_periodo.groupby('Dia_Semana')['Custo_Total_R$'].sum().reset_index()
+                df_dias['Dia'] = df_dias['Dia_Semana'].map(mapa_dias)
+                df_dias = df_dias.sort_values('Dia_Semana').set_index('Dia')
+                
+                # Desenha o gráfico de barras na cor vermelha
+                if not df_dias.empty:
+                    st.bar_chart(df_dias[['Custo_Total_R$']], color="#ef4444")
+                
+                st.divider()
+                
+                # --- HISTÓRICO BRUTO ---
+                with st.expander("Ver Histórico de Lançamentos Diários", expanded=False):
+                    # Mostra só as colunas que importam, formatando as datas
+                    st.dataframe(df_avarias_periodo[['Data', 'Produto', 'Qtd_KG']], use_container_width=True, hide_index=True)
+                    
+            else:
+                st.success(f"🎉 Excelente! Nenhuma avaria registrada entre {ini.strftime('%d/%m')} e {fim.strftime('%d/%m')}.")
+        else: 
+            st.info("Nenhuma avaria registrada no sistema ainda.")
+
+else: st.info("Sincronizando dados ou nenhuma venda no período...")

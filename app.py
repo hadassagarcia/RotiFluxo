@@ -177,20 +177,49 @@ except Exception as e:
     st.error(f"Erro ao ler avarias ao vivo: {e}")
     df_avarias = pd.DataFrame()
 
-# --- INÍCIO DO CÓDIGO CORRIGIDO ---
+n
+# --- LÓGICA E DASHBOARD ---
 if not df_base.empty and len(datas_sel) == 2:
     ini, fim = datas_sel
     df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
     
-    # --- STATUS DA META DINÂMICO ---
-    fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
-    progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
+    # 1. CÁLCULO FINANCEIRO ATUAL E ANTERIOR
+    fat_atual = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
     
-    st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
-    st.progress(progresso)
-    st.write(f"Total Vendido: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
+    # Define o período do mês passado (mesmos dias)
+    ini_ant = (pd.to_datetime(ini) - pd.DateOffset(months=1)).date()
+    fim_ant = (pd.to_datetime(fim) - pd.DateOffset(months=1)).date()
+    fat_ant = df_base[(df_base['Data_Date'] >= ini_ant) & (df_base['Data_Date'] <= fim_ant) & (df_base['CODOPER'] == 'S')]['Valor_Final'].sum()
+    
+    dif_valor = fat_atual - fat_ant
+    progresso = min(fat_atual / META_FATURAMENTO, 1.0)
+    
+    # 2. EXIBIÇÃO DOS 3 CARDS PROFISSIONAIS (Cálculo MoM incluso)
+    st.markdown("### 📊 Performance Executiva")
+    c1, c2, c3 = st.columns(3)
+    
+    # Card 1: Total Vendido
+    c1.markdown(f'''<div class="card">
+        <p style="color: #64748b; font-size: 14px; margin:0;">Total Vendido</p>
+        <p style="font-size: 24px; font-weight: 800; margin:0;">R$ {fat_atual:,.2f}</p>
+    </div>''', unsafe_allow_html=True)
+    
+    # Card 2: % Meta
+    c2.markdown(f'''<div class="card">
+        <p style="color: #64748b; font-size: 14px; margin:0;">Atingimento da Meta</p>
+        <p style="font-size: 24px; font-weight: 800; margin:0;">{progresso*100:.1f}%</p>
+    </div>''', unsafe_allow_html=True)
+    
+    # Card 3: Análise MoM (O que você pediu)
+    sinal = "+" if dif_valor >= 0 else ""
+    cor_mom = "#16a34a" if dif_valor >= 0 else "#dc2626"
+    c3.markdown(f'''<div class="card">
+        <p style="color: #64748b; font-size: 14px; margin:0;">Análise MoM (vs mês anterior)</p>
+        <p style="font-size: 24px; font-weight: 800; margin:0; color: {cor_mom};">
+        {sinal} R$ {abs(dif_valor):,.2f}</p>
+    </div>''', unsafe_allow_html=True)
 
-    st.write("<br>", unsafe_allow_html=True) # Quebra de linha para dar um respiro antes das abas
+    st.write("<br>") # Espaçamento
 
     aba_perf, aba_vendas, aba_pico, aba_abc, aba_avaria = st.tabs([
         "📈 Margem Real", "📊 Visão Diária", "🔥 Picos", "🏆 ABC", "🗑️ Avaria"

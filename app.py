@@ -180,44 +180,20 @@ except Exception as e:
 
 # --- LÓGICA E DASHBOARD ---
 if not df_base.empty and len(datas_sel) == 2:
-    ini, fim = datas_sel
-    df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
-    
-    # 1. CÁLCULO FINANCEIRO ATUAL E ANTERIOR
     fat_atual = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
-    
-    # Define o período do mês passado (mesmos dias)
-    ini_ant = (pd.to_datetime(ini) - pd.DateOffset(months=1)).date()
-    fim_ant = (pd.to_datetime(fim) - pd.DateOffset(months=1)).date()
     fat_ant = df_base[(df_base['Data_Date'] >= ini_ant) & (df_base['Data_Date'] <= fim_ant) & (df_base['CODOPER'] == 'S')]['Valor_Final'].sum()
-    
-    dif_valor = fat_atual - fat_ant
+    dif_mom = fat_atual - fat_ant
     progresso = min(fat_atual / META_FATURAMENTO, 1.0)
+
+    # A BARRINHA QUE VOCÊ PEDIU
+    st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
+    st.progress(progresso)
     
-    # 2. EXIBIÇÃO DOS 3 CARDS PROFISSIONAIS (Cálculo MoM incluso)
-    st.markdown("### 📊 Performance Executiva")
+    # 3 CAIXAS ARREDONDADAS
     c1, c2, c3 = st.columns(3)
-    
-    # Card 1: Total Vendido
-    c1.markdown(f'''<div class="card">
-        <p style="color: #64748b; font-size: 14px; margin:0;">Total Vendido</p>
-        <p style="font-size: 24px; font-weight: 800; margin:0;">R$ {fat_atual:,.2f}</p>
-    </div>''', unsafe_allow_html=True)
-    
-    # Card 2: % Meta
-    c2.markdown(f'''<div class="card">
-        <p style="color: #64748b; font-size: 14px; margin:0;">Atingimento da Meta</p>
-        <p style="font-size: 24px; font-weight: 800; margin:0;">{progresso*100:.1f}%</p>
-    </div>''', unsafe_allow_html=True)
-    
-    # Card 3: Análise MoM (O que você pediu)
-    sinal = "+" if dif_valor >= 0 else ""
-    cor_mom = "#16a34a" if dif_valor >= 0 else "#dc2626"
-    c3.markdown(f'''<div class="card">
-        <p style="color: #64748b; font-size: 14px; margin:0;">Análise MoM (vs mês anterior)</p>
-        <p style="font-size: 24px; font-weight: 800; margin:0; color: {cor_mom};">
-        {sinal} R$ {abs(dif_valor):,.2f}</p>
-    </div>''', unsafe_allow_html=True)
+    c1.markdown(f'<div class="metric-card"><h3>Total Vendido</h3><p style="font-size:24px; font-weight:800">R$ {fat_atual:,.2f}</p></div>', unsafe_allow_html=True)
+    c2.markdown(f'<div class="metric-card"><h3>Atingimento Meta</h3><p style="font-size:24px; font-weight:800">{progresso*100:.1f}%</p></div>', unsafe_allow_html=True)
+    c3.markdown(f'<div class="metric-card"><h3>Análise MoM</h3><p style="font-size:24px; font-weight:800">{"R$ "+"{:,.2f}".format(dif_mom)}</p>vs mês anterior</div>', unsafe_allow_html=True)
 
     st.write("<br>") # Espaçamento
 

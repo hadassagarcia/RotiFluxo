@@ -3,34 +3,51 @@
 
 /* Centralizar as abas e configurar a aba selecionada em tom de cinza */
 /* Centralizar as abas e dar espaçamento entre as caixinhas */
-div[data-baseweb="tab-list"], div[data-testid="stTabs"] > div {
+/* =========================================================
+   FORÇANDO AS ABAS A VIRAREM BOTÕES (CAIXINHAS)
+========================================================= */
+
+/* 1. Esconde a linha de marcação padrão do Streamlit */
+div[data-baseweb="tab-highlight"] {
+    display: none !important;
+    background-color: transparent !important;
+}
+
+/* 2. Centraliza e dá espaço entre as caixas */
+div[data-baseweb="tab-list"] {
+    gap: 12px !important;
     justify-content: center !important;
-    gap: 12px; 
+    background-color: transparent !important;
 }
 
-/* O visual da caixinha (borda arredondada, fundo branco e padding) */
-button[data-baseweb="tab"], div[data-testid="stTabs"] button { 
-    background-color: #ffffff !important; 
-    border-radius: 12px !important; 
+/* 3. O visual padrão das caixas (Não selecionadas) */
+button[data-baseweb="tab"] {
+    background-color: #ffffff !important;
+    border-radius: 12px !important;
     border: 1px solid #cbd5e1 !important;
-    padding: 12px 24px !important; /* Deixa a caixa mais "gordinha" */
+    padding: 10px 24px !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+    margin: 0 !important;
 }
 
-/* O visual da caixinha quando está SELECIONADA (Vermelho RotiFácil) */
-button[aria-selected="true"], div[data-testid="stTabs"] button[aria-selected="true"] { 
-    background-color: #c92a2a !important; 
-    color: white !important; 
+/* 4. O visual da caixa SELECIONADA (Vermelho RotiFácil) */
+button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #c92a2a !important;
     border: 1px solid #c92a2a !important;
-    box-shadow: 0 4px 6px rgba(201,42,42,0.2) !important; /* Sombra vermelha leve */
+    box-shadow: 0 4px 6px rgba(201,42,42,0.2) !important;
 }
 
-/* O tamanho da letra dentro das caixinhas */
-button[data-baseweb="tab"] p, div[data-testid="stTabs"] button p { 
-    font-size: 18px !important; /* Aumentamos a fonte */
-    font-weight: 700 !important; /* Letra mais grossa para dar destaque */
+/* 5. Aumentando e formatando a letra (Não selecionada) */
+button[data-baseweb="tab"] p {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #64748b !important; /* Cor cinza chumbo */
 }
 
+/* 6. Cor da letra na caixa SELECIONADA (Branco) */
+button[data-baseweb="tab"][aria-selected="true"] p {
+    color: #ffffff !important;
+}
 /* =========================================================
    ADICIONADO APENAS PARA AS MÉTRICAS NOVAS (MoM e Total)
 ========================================================= */

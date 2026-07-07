@@ -1,0 +1,11 @@
+/* style.css - Design do Painel */
+.stApp { background-color: #f1f5f9; }
+.main-dashboard {
+    background: #ffffff; border-radius: 24px; padding: 40px;
+    margin: 20px auto; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1200px;
+}
+.metric-card { 
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; 
+    padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); 
+}
+div[data-testid="stTabs"] button[aria-selected="true"] { background-color: #c92a2a !important; color: white !important; }

@@ -206,25 +206,53 @@ except Exception as e:
 
 # --- INÍCIO DO CÓDIGO CORRIGIDO ---
 if not df_base.empty and len(datas_sel) == 2:
-    ini, fim = datas_sel
-    df_filt = df_base[(df_base['Data_Date'] >= ini) & (df_base['Data_Date'] <= fim)].copy()
+    # --- CÁLCULO FINANCEIRO vs MÊS PASSADO ---
+    ini_ant = (pd.to_datetime(ini) - pd.DateOffset(months=1)).date()
+    fim_ant = (pd.to_datetime(fim) - pd.DateOffset(months=1)).date()
     
-    # --- STATUS DA META DINÂMICO ---
+    df_filt_ant = df_base[(df_base['Data_Date'] >= ini_ant) & (df_base['Data_Date'] <= fim_ant)].copy()
+    
     fat_periodo = df_filt[df_filt['CODOPER'] == 'S']['Valor_Final'].sum()
+    fat_periodo_ant = df_filt_ant[df_filt_ant['CODOPER'] == 'S']['Valor_Final'].sum()
+    
+    # Diferença exata em Reais (R$)
+    diferenca_rs = fat_periodo - fat_periodo_ant
+    sinal = "+" if diferenca_rs > 0 else ""
+    texto_diferenca = f"{sinal} R$ {diferenca_rs:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
     progresso = min(fat_periodo / META_FATURAMENTO, 1.0)
     
     st.subheader(f"🎯 Performance no Período (Meta: R$ {META_FATURAMENTO:,.2f})")
     st.progress(progresso)
-    st.write(f"Total Vendido: **R$ {fat_periodo:,.2f}** ({progresso*100:.1f}%)")
+    
+    st.write("<br>", unsafe_allow_html=True)
+    
+    # --- NOVOS CARTÕES (METRICS) COM IDENTIDADE VISUAL ---
+    col_m1, col_m2, col_m3 = st.columns(3)
+    
+    col_m1.metric(
+        label="💰 Faturamento Atual", 
+        value=f"R$ {fat_periodo:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'), 
+        delta=f"{texto_diferenca} vs mês anterior",
+        delta_color="normal"
+    )
+    
+    col_m2.metric(
+        label="📅 Referência Anterior", 
+        value=f"R$ {fat_periodo_ant:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'), 
+        delta=f"Mesmos dias ({ini_ant.strftime('%d/%m')} a {fim_ant.strftime('%d/%m')})",
+        delta_color="off"
+    )
+    
+    falta_rs = max(0, META_FATURAMENTO - fat_periodo)
+    col_m3.metric(
+        label="🚀 Atingimento da Meta", 
+        value=f"{progresso*100:.1f}%", 
+        delta=f"Falta R$ {falta_rs:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.') if progresso < 1 else "Meta Batida!",
+        delta_color="normal" if progresso < 1 else "off"
+    )
 
-    st.write("<br>", unsafe_allow_html=True) # Quebra de linha para dar um respiro antes das abas
-
-    aba_perf, aba_vendas, aba_pico, aba_abc, aba_avaria = st.tabs([
-        "📈 Margem Real", "📊 Visão Diária", "🔥 Picos", "🏆 ABC", "🗑️ Avaria"
-    ])
-
-    def fmt(v): return f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-
+    st.write("<br>", unsafe_allow_html=True)
     # --- ABA PERFORMANCE & MARGEM REAL ---
     with aba_perf:
         v_prod = df_filt[df_filt['CODOPER'] == 'S'].groupby('Produto').agg({'Valor_Final': 'sum', 'Qtd_KG': 'sum'}).reset_index()

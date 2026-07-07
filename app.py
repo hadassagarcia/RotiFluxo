@@ -76,70 +76,49 @@ PRECIFICACAO_REAL = {
     "PANQUECA CARNE MOIDA KG": [12.16, 29.99],
 }
 
-# --- ESTILIZAÇÃO CSS (IDENTIDADE ROTIFÁCIL & CAIXA MESTRE) ---
+# --- ESTILIZAÇÃO CSS PROFISSIONAL ---
 st.markdown("""
     <style>
-    /* Esconder o menu lateral padrão */
-    [data-testid="stSidebar"] { display: none; }
+    /* O "Reset" da página - Tirando o colado da borda */
+    .stApp { background-color: #f0f2f6; }
     
-    /* 1. Fundo da Tela Inteira (Cinza bem claro para dar contraste) */
-    .stApp {
-        background-color: #eef2f5 !important;
-    }
-    
-    /* 2. A Caixa Mestre Arredondada (Engloba todo o sistema) */
+    /* A Caixa Mestre: Agora com margens perfeitas e arredondamento */
     .block-container {
-        background-color: #ffffff;
-        border-radius: 30px;
-        padding: 3rem !important;
-        box-shadow: 0px 10px 40px rgba(0, 0, 0, 0.08);
-        max-width: 90% !important; /* Limita a largura para criar o efeito de flutuação */
-        margin-top: 3rem !important;
-        margin-bottom: 3rem !important;
+        background-color: white;
+        border-radius: 24px !important;
+        padding: 40px 60px !important;
+        margin: 40px auto !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        max-width: 95% !important;
     }
-    
-    /* 3. Centralização e Estilo das Abas */
-    div[data-testid="stTabs"] div[role="tablist"] {
-        justify-content: center !important;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    div[data-testid="stTabs"] button { 
-        background-color: #f8f9fa !important; 
-        border-radius: 20px !important; 
-        border: 1px solid #e2e8f0 !important;
-        padding: 10px 25px !important;
-        color: #475569 !important;
-        font-weight: 600 !important;
-        font-size: 16px !important;
-        transition: all 0.3s ease;
-    }
-    /* Aba Selecionada - Vermelho RotiFácil */
-    div[data-testid="stTabs"] button[aria-selected="true"] { 
-        background-color: #c92a2a !important; 
-        color: white !important; 
-        border: none !important;
-        box-shadow: 0px 4px 12px rgba(201, 42, 42, 0.3);
-    }
-    
-    /* 4. Cartões de Indicadores (Metrics) com toque Amarelo RotiFácil */
+
+    /* Estilo Profissional para os Cards de Métricas */
     [data-testid="metric-container"] {
-        background-color: #ffffff;
-        border-left: 6px solid #f5a623; /* Amarelo Ouro Logo */
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 20px;
         border-radius: 16px;
-        padding: 20px 25px;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.04);
-        border-top: 1px solid #f1f5f9;
-        border-right: 1px solid #f1f5f9;
-        border-bottom: 1px solid #f1f5f9;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
-    [data-testid="stMetricValue"] {
-        font-size: 32px !important;
-        font-weight: 900 !important;
-        color: #1e293b;
+    
+    /* Abas com cara de Botões de Navegação */
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 10px; }
+    div[data-testid="stTabs"] button {
+        border-radius: 12px !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 10px 20px !important;
+        font-weight: 600 !important;
     }
+    div[data-testid="stTabs"] button[aria-selected="true"] {
+        background: #c92a2a !important;
+        color: white !important;
+    }
+    
+    /* Títulos mais elegantes */
+    h1, h2, h3 { color: #1e293b !important; font-family: 'Inter', sans-serif !important; }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- CARGA DE DADOS ---
 @st.cache_data(ttl=60)

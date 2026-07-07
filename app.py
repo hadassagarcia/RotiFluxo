@@ -177,7 +177,7 @@ except Exception as e:
     st.error(f"Erro ao ler avarias ao vivo: {e}")
     df_avarias = pd.DataFrame()
 
-n
+
 # --- LÓGICA E DASHBOARD ---
 if not df_base.empty and len(datas_sel) == 2:
     ini, fim = datas_sel
